@@ -1,7 +1,11 @@
 {
   "name": "rutypi",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Webpack plugin for TypeScript to provide type data at runtime",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/WolverinDEV/rutypi"
+  },
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
