@@ -3,11 +3,14 @@
 validateType<Test>({ value: 12 }) -> returns the object itself and throws.
 validateType<Test>({ value: 12 }, { noThrow: true }) -> returns a wrapper around the result.
  */
-import { validateType } from "rutypi";
-import {Test} from "./types";
+import {typeInfo, validateType} from "rutypi";
+import { Test } from "./types";
 
 const result = validateType<Test>({}, { noThrow: false }); //Should be transformed
 result.myMap;
+
+console.error("Type info: %o", typeInfo<Test>());
+console.error("Type info: %o", typeInfo<{ value: string }>());
 /*
 {
     console.error("Hello World"); // This should not be transformed

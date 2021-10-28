@@ -1,3 +1,6 @@
+export type TypeRegistry = {
+    [key: string]: Type
+}
 
 export type Type = {
     type: "object",

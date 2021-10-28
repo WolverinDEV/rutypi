@@ -4,14 +4,23 @@ import * as tsloaderInstances from "ts-loader/dist/instances";
 import tsTransformer from "./transformer";
 import { TSInstance } from "ts-loader/dist/interfaces";
 import { LoaderOptions } from "ts-loader/dist/interfaces";
+import {DatastoreModule} from "./module";
+import {TypeRegistry} from "rutypi-sharedlib/types";
+import {Module} from "webpack";
 
-export default class RutypiWebpackPlugin {
+export class RutypiWebpackPlugin {
+    private readonly typeRegistry: TypeRegistry;
+
+    constructor() {
+        this.typeRegistry = { };
+    }
+
     apply(compiler: webpack.Compiler) {
         /* Hook each ts-compiler with our custom transformer */
         {
             const original = tsloaderInstances.initializeInstance;
             Object.assign(tsloaderInstances, {
-                initializeInstance: function (loader: webpack.LoaderContext<LoaderOptions>, instance: TSInstance) {
+                initializeInstance: (loader: webpack.LoaderContext<LoaderOptions>, instance: TSInstance) => {
                     if(!instance.initialSetupPending) {
                         return;
                     }
@@ -25,29 +34,23 @@ export default class RutypiWebpackPlugin {
                     const program = instance.program || instance.languageService.getProgram();
                     const transformers = instance.transformers || (instance.transformers = {});
                     const transformerArray = transformers.before || (transformers.before = []);
-                    transformerArray.push(tsTransformer(program));
+                    transformerArray.push(tsTransformer(program, this.typeRegistry));
 
                     console.error("setTSInstanceInCache");
                 }
             });
         }
 
-        /*
         compiler.hooks.thisCompilation.tap("RutypiWebpackPlugin", (compilation, { normalModuleFactory }) => {
-            normalModuleFactory.hooks.factory.tap("RutypiWebpackPlugin", factory => (data, callback) => {
-                if(data.request.startsWith(this.options.modulePrefix)) {
-                    const configName = data.request.substr(this.options.modulePrefix.length);
-                    if(this.options.configurations[configName] === undefined) {
-                        callback("Missing SVG configuration " + configName);
-                        return;
-                    }
-                    callback(null, new SvgSpriteModule(data.request, this.options, configName, this.options.configurations[configName]));
-                    return;
+            normalModuleFactory.hooks.factorize.tap("RutypiWebpackPlugin", data => {
+                if(data.request === "rutypi-datastore") {
+                    return new DatastoreModule(this.typeRegistry);
                 }
 
-                factory(data, callback);
+                return undefined;
             });
         });
-        */
     }
 }
+
+export default RutypiWebpackPlugin;

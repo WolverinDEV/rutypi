@@ -1,39 +1,25 @@
+import * as ts from "typescript";
 import {
     Block,
     FunctionDeclaration,
     Identifier,
     ImportDeclaration,
-    IntersectionType,
     NamedImports,
     NamespaceImport,
     Node,
-    NumberLiteralType,
-    ObjectFlags,
-    ObjectType,
     PropertyAccessExpression,
-    PropertySignature,
     SourceFile,
     StringLiteral,
-    StringLiteralType,
-    Symbol,
-    SymbolFlags,
     SyntaxKind,
     TransformationContext,
-    Type,
-    TypeAliasDeclaration,
-    TypeChecker,
-    TypeFlags,
-    TypeParameter,
-    TypeParameterDeclaration,
-    TypeReference,
-    UnionType
 } from "typescript";
-import { Type as TType } from "rutypi-sharedlib/types";
+import {TypeRegistry} from "rutypi-sharedlib/types";
 import * as _ from "lodash";
-import * as ts from "typescript";
+import {describeType} from "./describer";
 
 type VisitContext = {
     program: ts.Program,
+    registry: TypeRegistry,
     transformCtx: TransformationContext,
 
     depth: number,
@@ -103,7 +89,7 @@ nodeTransformer[SyntaxKind.ImportDeclaration] = (node: ImportDeclaration, ctx) =
             const namespaceImport: NamespaceImport = importClause.namedBindings;
             ctx.importNamespace[namespaceImport.name.text] = importModule;
 
-            console.info("Found namespace import of %s as %s", importModule, namespaceImport.name.text);
+            // console.info("Found namespace import of %s as %s", importModule, namespaceImport.name.text);
             break;
 
         default:
@@ -127,7 +113,7 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
             moduleName = ctx.imports[identifier.text];
 
             if(moduleName === undefined) {
-                console.warn("Failed to map %s to an import.", identifier.text);
+                //console.warn("Failed to map %s to an import.", identifier.text);
                 return node;
             }
             break;
@@ -152,6 +138,15 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
             }
             break;
 
+        case SyntaxKind.ElementAccessExpression:
+            /* TODO: This could be a reference to our import */
+            return node;
+
+        case SyntaxKind.SuperKeyword:
+        case SyntaxKind.ThisKeyword:
+            /* these calls can never be a call to an imported function */
+            return node;
+
         default:
             console.warn("Unknown how to handle call expression for %s: %s", SyntaxKind[node.expression.kind], node.expression.getText());
             return node;
@@ -165,6 +160,7 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
 
     switch (functionName) {
         case "validateType":
+        case "typeInfo":
             if(node.typeArguments.length !== 1) {
                 report(node, "invalid type argument length");
                 return node;
@@ -173,14 +169,13 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
             const typeChecker = ctx.program.getTypeChecker();
             const typeNode = node.typeArguments[0];
 
-            console.error("Type node: %s", SyntaxKind[typeNode.kind])
             const type = typeChecker.getTypeFromTypeNode(typeNode);
-            const references = {};
             let typeData;
+
             try {
-                typeData = displayType(type, {
+                typeData = describeType(type, {
                     typeChecker,
-                    references,
+                    references: ctx.registry,
 
                     depth: 0,
                     prefix: "",
@@ -192,7 +187,7 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                     message: error.toString()
                 }
             }
-            console.error("Result: %o", typeData);
+            //console.error("Result: %o", typeData);
 
             /* TODO: Only use a unique identifier and register the actual result somewhere elsewhere as well */
             const { factory } = ctx.transformCtx;
@@ -203,7 +198,10 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                     "__original"
                 ),
                 node.typeArguments,
-                [factory.createStringLiteral(JSON.stringify(typeData)), ...node.arguments]
+                [
+                    factory.createIdentifier(JSON.stringify(typeData)),
+                    ...node.arguments
+                ]
             );
 
         default:
@@ -212,180 +210,16 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
     }
 };
 
-type TypeDisplayContext = {
-    typeChecker: TypeChecker,
+const cloneContext = (context: VisitContext): VisitContext => ({
+    ...context,
 
-    prefix: string,
-    depth: number,
+    declaredVariables: _.clone(context.declaredVariables),
+    declaredFunctions: _.clone(context.declaredFunctions),
 
-    references: {
-        [key: string]: TType
-    },
-}
-
-const displayFlags = (flag: number, flags: object) => {
-    const activeFlags = [];
-    for(const key of Object.keys(flags)) {
-        const keyNumeric = parseInt(key);
-        if(isNaN(keyNumeric)) {
-            continue;
-        }
-
-        if((flag & keyNumeric) === keyNumeric) {
-            activeFlags.push(flags[keyNumeric]);
-        }
-    }
-    return activeFlags.join(", ") || "no flags";
-}
-
-const TypeDisplayMap: {
-    [K in TypeFlags]?: TType | ((type: Type, ctx: TypeDisplayContext) => TType)
-} = {};
-TypeDisplayMap[TypeFlags.Any] = { type: "any" };
-TypeDisplayMap[TypeFlags.Unknown] = { type: "unknown" };
-TypeDisplayMap[TypeFlags.Void] = { type: "void" };
-TypeDisplayMap[TypeFlags.String] = { type: "string" };
-TypeDisplayMap[TypeFlags.StringLiteral] = (type: StringLiteralType) => ({ type: "string", value: type.value });
-TypeDisplayMap[TypeFlags.Number] = { type: "number" };
-TypeDisplayMap[TypeFlags.NumberLiteral] = (type: NumberLiteralType) => ({ type: "number", value: type.value });
-TypeDisplayMap[TypeFlags.Boolean] = { type: "boolean" };
-TypeDisplayMap[TypeFlags.BooleanLiteral] = (type: object) => ({ type: "boolean", value: type["intrinsicName"] === "true" });
-TypeDisplayMap[TypeFlags.TypeParameter] = (type: TypeParameter) => ({ type: "type-reference", target: type.symbol.name, typeArguments: [] });
-TypeDisplayMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
-    let typeArguments = type.aliasTypeArguments?.map(type => displayType(type, ctx));
-    let referenceResult: TType & { type: "object-reference" } = {
-        type: "object-reference",
-        target: "will be set later",
-        typeArguments
-    };
-
-    let referenceId;
-    if(type.objectFlags & ObjectFlags.Anonymous) {
-        /* Serialize this in line or as a reference */
-        referenceId = type.aliasSymbol ? "T" + type.symbol["id"] + "_" + type.aliasSymbol.name : undefined;
-    } else if(type.objectFlags & ObjectFlags.Class) {
-        throw "classes are not allowed";
-    } else if(type.objectFlags & ObjectFlags.Interface) {
-        /*
-         * All right, can be serialized and will be put in as a reference.
-         * If there are any template arguments a "Reference" will be used instead of aliasTypeArguments.
-         */
-        referenceId = "I" + type.symbol["id"] + "_" + type.symbol.name;
-    } else if(type.objectFlags & ObjectFlags.Reference) {
-        const typeReference = type as TypeReference;
-        let result = displayType(typeReference.target, ctx);
-        if(result.type !== "object-reference") {
-            /* a reference should be pointing to some kind of object which will return a reference. */
-            throw "this seems to be a bug in the compiler";
-        }
-
-        return {
-            type: "object-reference",
-            target: result.target,
-            typeArguments: typeReference.typeArguments?.map(type => displayType(type, ctx)) || []
-        };
-    } else {
-        throw "unknown object flags " + displayFlags(type.objectFlags, ObjectFlags);
-    }
-
-    let objectInfo: TType = {
-        type: "object",
-        extends: [],
-        members: {},
-        typeArgumentNames: []
-    };
-
-    referenceResult.target = referenceId;
-    if(referenceId in ctx.references) {
-        return referenceResult;
-    } else {
-        ctx.references[referenceId] = objectInfo;
-    }
-
-    {
-        let innerContext = { ...ctx };
-        innerContext.prefix = referenceId ? "" : innerContext.prefix + "  ";
-        innerContext.depth += 1;
-
-        /* Type parameter specification for type alias */
-        if(type.aliasSymbol) {
-            if(type.aliasSymbol.declarations.length !== 1) {
-                throw "alias symbol is expected to contain exactly one declaration";
-            }
-
-            const typeAlias = type.aliasSymbol.declarations[0] as TypeAliasDeclaration;
-            if(typeAlias.kind != SyntaxKind.TypeAliasDeclaration) {
-                throw "alias symbol declaration is supposed to be a type alias declaration but is a " + SyntaxKind[typeAlias.kind];
-            }
-
-            for(const typeArgument of typeAlias.typeParameters || []) {
-                objectInfo.typeArgumentNames.push(typeArgument.name.text);
-            }
-        }
-
-        for(let [ key, value ] of type.symbol.members! as Map<string, Symbol>) {
-            if(value.flags === SymbolFlags.Property) {
-                const propertySignature = value.valueDeclaration as PropertySignature;
-                if(propertySignature?.kind !== SyntaxKind.PropertySignature) {
-                    throw "expected a property signature node";
-                }
-
-                const type = ctx.typeChecker.getTypeFromTypeNode(propertySignature.type);
-                objectInfo.members[key] = displayType(type, innerContext);
-            } else if(value.flags === SymbolFlags.TypeParameter) {
-                /* Type parameter specification for interfaces. */
-                if(value.declarations.length < 1) {
-                    /* TODO: Verify that all declarations are equal and don't only take the first one! */
-                    throw "type parameter expect at least only one declaration";
-                }
-                const declaration = value.declarations[0] as TypeParameterDeclaration;
-                if(declaration.kind !== SyntaxKind.TypeParameter) {
-                    throw "expected a type parameter";
-                }
-
-                objectInfo.typeArgumentNames.push(key);
-            } else if(value.flags === SymbolFlags.Method) {
-                objectInfo.members[key] = {
-                    type: "method"
-                };
-            } else {
-                throw "unknown how to handle object member of kind " + displayFlags(value.flags, SymbolFlags);
-            }
-        }
-
-        for(const baseType of type.getBaseTypes() || []) {
-            objectInfo.extends.push(displayType(baseType, ctx));
-        }
-    }
-
-    return referenceResult;
-}
-
-TypeDisplayMap[TypeFlags.Union] = (type: UnionType, ctx) => ({
-    type: "union",
-    types: type.types.map(type => displayType(type, ctx))
+    imports: _.clone(context.imports),
+    importAlias: _.clone(context.importAlias),
+    importNamespace: _.clone(context.importNamespace),
 })
-
-TypeDisplayMap[TypeFlags.Intersection] = (type: IntersectionType, ctx) => ({
-    type: "intersection",
-    types: type.types.map(type => displayType(type, ctx))
-})
-
-const displayType = (type: Type, ctx: TypeDisplayContext): TType => {
-    for(const key of Object.keys(TypeDisplayMap)) {
-        const mask = parseInt(key);
-        if(type.flags & mask) {
-            let result = TypeDisplayMap[key];
-            if(typeof result === "object") {
-                return result;
-            }
-
-            return result(type, ctx);
-        }
-    }
-
-    throw "unknown type " + displayFlags(type.flags, TypeFlags);
-}
 
 const visit = <T extends Node>(node: T, context: VisitContext) => {
     let newNode: Node = node;
@@ -399,7 +233,7 @@ const visit = <T extends Node>(node: T, context: VisitContext) => {
     }
 
     if(newNode === node) {
-        let childContext = _.cloneDeep(context);
+        let childContext = cloneContext(context);
         childContext.depth += 1;
         childContext.printPrefix += "  ";
 
@@ -409,11 +243,13 @@ const visit = <T extends Node>(node: T, context: VisitContext) => {
     return newNode || [];
 }
 
-const createTransformer = (program: ts.Program) => (ctx: TransformationContext) => {
+const createTransformer = (program: ts.Program, registry: TypeRegistry) => (ctx: TransformationContext) => {
     return (node: SourceFile) => {
         console.error("Visit: %s", node.fileName);
         const initialContext: VisitContext = {
             program: program,
+            registry: registry,
+
             transformCtx: ctx,
             depth: 0,
 

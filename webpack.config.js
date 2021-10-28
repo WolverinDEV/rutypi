@@ -1,13 +1,13 @@
 const webpack = require("webpack");
-const JsonValidateWebpack = require("./wp-plugin");
 const path = require("path");
+const { RutypiWebpackPlugin } = require("./wp-plugin");
 
 module.exports = {
     entry: './tests/index.ts',
     mode: "development",
     devtool: "source-map",
     plugins: [
-        new JsonValidateWebpack.default(),
+        new RutypiWebpackPlugin(),
         new webpack.CleanPlugin()
     ],
     module: {
