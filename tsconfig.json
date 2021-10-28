@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "module": "CommonJS",
+    "target": "ES6",
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "rutypi": ["src/index.ts"],
+      "rutypi-sharedlib/*": ["shared/*"]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
