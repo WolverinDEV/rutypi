@@ -1,6 +1,6 @@
 {
   "name": "rutypi",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Webpack plugin for TypeScript to provide type data at runtime",
   "repository": {
     "type": "git",

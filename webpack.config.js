@@ -32,6 +32,10 @@ module.exports = {
                     to: path.join(__dirname, "dist")
                 },
                 {
+                    from: path.join(__dirname, "readme.md"),
+                    to: path.join(__dirname, "dist")
+                },
+                {
                     from: path.join(__dirname, "typefix/"),
                     to: path.join(__dirname, "dist/")
                 },
