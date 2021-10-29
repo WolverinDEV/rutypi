@@ -1,6 +1,6 @@
-import {Type} from "rutypi-sharedlib/types";
+import {Type, TypeInvalid} from "rutypi-sharedlib/types";
 
-export const typeInfo = (typeInfo: Type): Type => {
+export const typeInfo = (typeInfo: Type | TypeInvalid): Type | TypeInvalid => {
     /* console.error("typeInfo called with %s", typeInfo); */
     return typeInfo;
 }

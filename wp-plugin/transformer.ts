@@ -15,7 +15,7 @@ import {
 } from "typescript";
 import {Type, TypeRegistry} from "rutypi-sharedlib/types";
 import * as _ from "lodash";
-import {describeType} from "./describer";
+import {describeNode, describeType} from "./describer";
 
 type VisitContext = {
     program: ts.Program,
@@ -168,14 +168,10 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                 return node;
             }
 
-            const typeChecker = ctx.program.getTypeChecker();
-            const typeNode = node.typeArguments[0];
-            const type = typeChecker.getTypeFromTypeNode(typeNode);
             let typeData;
-
             try {
-                typeData = describeType(type, {
-                    typeChecker,
+                typeData = describeNode(node.typeArguments[0], {
+                    typeChecker: ctx.program.getTypeChecker(),
                     references: ctx.registry,
 
                     depth: 0,

@@ -7,25 +7,14 @@ export type TypeRegistry = {
     }
 }
 
-export type Type = {
-    type: "object",
-    typeArgumentNames: string[],
-    members: {
-        [key: string]: Type
-    },
-    extends: Type[]
-} | {
-    type: "object-reference" | "type-reference",
-    target: string,
-    typeArguments: Type[],
-} | {
+export type Type = TypeObject | TypeReference | {
     type: "union",
     types: Type[]
 } | {
     type: "intersection",
     types: Type[]
 } | {
-    type: "any" | "unknown" | "void"
+    type: "any" | "unknown" | "undefined" | "null" | "void"
 } | {
     /* TODO: Add support for bigint as well */
     type: "number",
@@ -38,4 +27,27 @@ export type Type = {
     value?: boolean
 } | {
     type: "method"
-}
+};
+
+export type TypeObject = {
+    type: "object",
+    typeArgumentNames?: string[],
+    members?: {
+        [key: string]: Type
+    },
+    optionalMembers?: {
+        [key: string]: Type
+    },
+    extends?: Type[]
+};
+
+export type TypeReference = {
+    type: "object-reference" | "type-reference",
+    target: string,
+    typeArguments: Type[],
+};
+
+export type TypeInvalid = {
+    type: "invalid",
+    reason: string
+};

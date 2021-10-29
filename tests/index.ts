@@ -3,14 +3,39 @@
 validateType<Test>({ value: 12 }) -> returns the object itself and throws.
 validateType<Test>({ value: 12 }, { noThrow: true }) -> returns a wrapper around the result.
  */
-import {typeInfo, validateType} from "rutypi";
+import {lookupReference, typeInfo, validateType} from "rutypi";
 import { Test } from "./types";
 
+/*
+typeInfo<{
+    value: number | null | undefined
+}>();
+*/
+
+typeInfo<{
+    value: string | undefined,
+    optValue?: string
+}>();
+
+/*
 const result = validateType<Test>({}, { noThrow: false }); //Should be transformed
 //result.somethingNewInHere_;
 
 console.error("Type info: %o", typeInfo<Test>());
-console.error("Type info: %o", typeInfo<{ value: string }>());
+console.error("Type info: %o", typeInfo<{ value: symbol }>());
+*/
+
+type MyType = {
+    key: string,
+    value: number,
+    ref: MyType | undefined | null
+};
+
+validateType<MyType>({ key: "a", value: 123, ref: undefined })
+let info = typeInfo<MyType>();
+if(info.type === "object-reference") {
+    console.log("Reference output: %o", lookupReference(info));
+}
 
 let x: Test;
 //x.somethingNewInHere1;

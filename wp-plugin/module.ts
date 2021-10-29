@@ -50,6 +50,7 @@ export class DatastoreModule extends Module {
         this.buildMeta = {};
         this.dependencies.length = 0;
 
+        /* TODO: Only insert type definition called from module which are actually included in this webpack build. */
         this.typeInfoSnapshotVersion++;
         this.typeInfoSnapshot = _.clone(this.typeInfo.definitions);
         this.generatedSource = undefined;

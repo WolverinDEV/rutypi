@@ -6,7 +6,10 @@ import {
     Type, TypeAliasDeclaration,
     TypeChecker,
     TypeFlags,
-    TypeParameter, TypeParameterDeclaration, TypeReference, UnionType
+    TypeParameter, TypeParameterDeclaration, TypeReference, UnionType,
+    Node,
+    UnionTypeNode,
+    ParenthesizedTypeNode
 } from "typescript";
 import {Type as TType} from "rutypi-sharedlib/types";
 import {displayFlags} from "./utils";
@@ -22,10 +25,57 @@ type TypeDisplayContext = {
     },
 }
 
+const mapToTypeAndProceed = (node: Node, ctx: TypeDisplayContext) => {
+    const type = ctx.typeChecker.getTypeAtLocation(node);
+    return describeType(type, ctx);
+}
+
+const NodeDescribeMap: {
+    [K in SyntaxKind]?: TType | ((node: Node, ctx: TypeDisplayContext) => TType)
+} = {};
+
+NodeDescribeMap[SyntaxKind.UnionType] = (node: UnionTypeNode, ctx) => {
+    return {
+        type: "union",
+        types: node.types.map(node => describeNode(node, ctx))
+    }
+};
+
+NodeDescribeMap[SyntaxKind.IntersectionType] = (node: UnionTypeNode, ctx) => {
+    return {
+        type: "union",
+        types: node.types.map(node => describeNode(node, ctx))
+    }
+};
+
+NodeDescribeMap[SyntaxKind.ParenthesizedType] = (node: ParenthesizedTypeNode, ctx) => describeNode(node.type, ctx);
+NodeDescribeMap[SyntaxKind.UndefinedKeyword] = { type: "undefined" };
+NodeDescribeMap[SyntaxKind.NullKeyword] = { type: "null" };
+NodeDescribeMap[SyntaxKind.UnknownKeyword] = { type: "unknown" };
+NodeDescribeMap[SyntaxKind.StringKeyword] = { type: "string" };
+NodeDescribeMap[SyntaxKind.NumberKeyword] = { type: "number" };
+NodeDescribeMap[SyntaxKind.LiteralType] = mapToTypeAndProceed;
+NodeDescribeMap[SyntaxKind.TypeReference] = mapToTypeAndProceed;
+NodeDescribeMap[SyntaxKind.TypeLiteral] = mapToTypeAndProceed;
+
+export const describeNode = (node: Node, ctx: TypeDisplayContext): TType => {
+    let result = NodeDescribeMap[node.kind];
+    if(result === undefined) {
+        /* TODO: This as backup */
+        /* typeChecker.getTypeFromTypeNode(typeNode) */
+        throw "unknown how to describe node " + SyntaxKind[node.kind];
+    } else if(typeof result === "object") {
+        return result;
+    } else {
+        return result(node, ctx);
+    }
+}
+
 const TypeDescribeMap: {
     [K in TypeFlags]?: TType | ((type: Type, ctx: TypeDisplayContext) => TType)
 } = {};
 TypeDescribeMap[TypeFlags.Any] = { type: "any" };
+TypeDescribeMap[TypeFlags.Null] = { type: "null" };
 TypeDescribeMap[TypeFlags.Unknown] = { type: "unknown" };
 TypeDescribeMap[TypeFlags.Void] = { type: "void" };
 TypeDescribeMap[TypeFlags.String] = { type: "string" };
@@ -76,6 +126,7 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
         type: "object",
         extends: [],
         members: {},
+        optionalMembers: {},
         typeArgumentNames: []
     };
 
@@ -108,14 +159,17 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
         }
 
         for(let [ key, value ] of type.symbol.members! as Map<string, Symbol>) {
-            if(value.flags === SymbolFlags.Property) {
+            if(value.flags & SymbolFlags.Property) {
                 const propertySignature = value.valueDeclaration as PropertySignature;
                 if(propertySignature?.kind !== SyntaxKind.PropertySignature) {
                     throw "expected a property signature node";
                 }
 
-                const type = ctx.typeChecker.getTypeFromTypeNode(propertySignature.type);
-                objectInfo.members[key] = describeType(type, innerContext);
+                if(value.flags & SymbolFlags.Optional) {
+                    objectInfo.optionalMembers[key] = describeNode(propertySignature.type, innerContext);
+                } else {
+                    objectInfo.members[key] = describeNode(propertySignature.type, innerContext);
+                }
             } else if(value.flags === SymbolFlags.TypeParameter) {
                 /* Type parameter specification for interfaces. */
                 if(value.declarations.length < 1) {
@@ -142,18 +196,32 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
         }
     }
 
+    if(objectInfo.typeArgumentNames.length === 0) {
+        delete objectInfo.typeArgumentNames;
+    }
+
+    if(Object.keys(objectInfo.members).length === 0) {
+        delete objectInfo.members;
+    }
+
+    if(Object.keys(objectInfo.optionalMembers).length === 0) {
+        delete objectInfo.optionalMembers;
+    }
+
+    if(objectInfo.extends.length === 0) {
+        delete objectInfo.extends;
+    }
+
     return referenceId ? referenceResult : objectInfo;
 }
 
-TypeDescribeMap[TypeFlags.Union] = (type: UnionType, ctx) => ({
-    type: "union",
-    types: type.types.map(type => describeType(type, ctx))
-})
+TypeDescribeMap[TypeFlags.Union] = () => {
+    throw "Unions should be handled via nodes";
+};
 
-TypeDescribeMap[TypeFlags.Intersection] = (type: IntersectionType, ctx) => ({
-    type: "intersection",
-    types: type.types.map(type => describeType(type, ctx))
-})
+TypeDescribeMap[TypeFlags.Intersection] = () => {
+    throw "Intersections should be handled via nodes";
+};
 
 export const describeType = (type: Type, ctx: TypeDisplayContext): TType => {
     for(const key of Object.keys(TypeDescribeMap)) {

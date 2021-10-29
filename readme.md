@@ -58,16 +58,21 @@ let info = typeInfo<MyType>();
 if(info.type === "object-reference") {
     /*
      * Will print:
-     * {
-     *   type: 'object',
-     *   extends: [ [length]: 0 ],
-     *   members: {
-     *     key: { type: 'string' },
-     *     value: { type: 'number' },
-     *     ref: { type: 'object-reference', target: 'T94_MyType' }
-     *   },
-     *   typeArgumentNames: [ [length]: 0 ]
-     * }
+     *  {
+     *    type: 'object',
+     *    members: {
+     *      key: { type: 'string' },
+     *      value: { type: 'number' },
+     *      ref: {
+     *        type: 'union',
+     *        types: [
+     *          { type: 'object-reference', target: 'T43_MyType' },
+     *          { type: 'undefined' },
+     *          { type: 'null' },
+     *        ]
+     *      }
+     *    },
+     *  }
      */
     console.log("Reference output: %o", lookupReference(info));
 }

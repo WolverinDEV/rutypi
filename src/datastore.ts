@@ -7,7 +7,7 @@ declare module "rutypi-datastore" {
 
     type TypeEntry = {
         status: "success",
-        value: string | Type
+        value: Type
     } | {
         status: "error",
         message: string
@@ -15,7 +15,7 @@ declare module "rutypi-datastore" {
 
     const data: {
         knownTypes: {
-            [key: string]: TypeEntry
+            [key: string]: Type
         }
     };
 

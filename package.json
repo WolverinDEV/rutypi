@@ -9,7 +9,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "webpack-cli --watch"
+    "compile": "webpack-cli",
+    "compile-watch": "webpack-cli --watch"
   },
   "keywords": [],
   "author": "",

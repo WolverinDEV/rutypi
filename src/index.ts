@@ -1,12 +1,16 @@
 import { ValidateOptions, ValidateResult } from "./types";
 import { validateType as realValidateType } from "./validate";
 import { typeInfo as realTypeInfo } from "./typeinfo";
-import { Type } from "rutypi-sharedlib/types";
+import {Type} from "rutypi-sharedlib/types";
 
 export {
     ValidateOptions,
     ValidateResult
 } from "./types";
+
+export {
+    lookupReference
+} from "./datahelper";
 
 export {
     Type
