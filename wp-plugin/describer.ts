@@ -21,7 +21,7 @@ type TypeDisplayContext = {
     },
 }
 
-const displayFlags = (flag: number, flags: object) => {
+export const displayFlags = (flag: number, flags: object) => {
     const activeFlags = [];
     for(const key of Object.keys(flags)) {
         const keyNumeric = parseInt(key);

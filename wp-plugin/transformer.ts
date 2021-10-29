@@ -168,7 +168,6 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
 
             const typeChecker = ctx.program.getTypeChecker();
             const typeNode = node.typeArguments[0];
-
             const type = typeChecker.getTypeFromTypeNode(typeNode);
             let typeData;
 
@@ -181,15 +180,13 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                     prefix: "",
                 });
             } catch (error) {
-                console.error("ERROR: %o", error);
+                console.error("ERROR: %s - %o", error);
                 typeData = {
                     status: "invalid",
                     message: error.toString()
                 }
             }
-            //console.error("Result: %o", typeData);
 
-            /* TODO: Only use a unique identifier and register the actual result somewhere elsewhere as well */
             const { factory } = ctx.transformCtx;
             return factory.updateCallExpression(
                 node,
@@ -243,12 +240,12 @@ const visit = <T extends Node>(node: T, context: VisitContext) => {
     return newNode || [];
 }
 
-const createTransformer = (program: ts.Program, registry: TypeRegistry) => (ctx: TransformationContext) => {
+const createTransformer = (refProgram: { current: ts.Program }, registry: TypeRegistry) => (ctx: TransformationContext) => {
     return (node: SourceFile) => {
         console.error("Visit: %s", node.fileName);
         const initialContext: VisitContext = {
-            program: program,
-            registry: registry,
+            program: refProgram.current,
+            registry: {},
 
             transformCtx: ctx,
             depth: 0,
@@ -261,13 +258,22 @@ const createTransformer = (program: ts.Program, registry: TypeRegistry) => (ctx:
 
             imports: {},
             importAlias: {},
-            importNamespace: {
-                "console": "sys.console",
-                "window": "sys.window",
-            }
+            importNamespace: {}
         };
 
-        return visit(node, initialContext) as SourceFile;
+        /* This actually triggers the TypeChecker to build up his type information */
+        //{
+        //    const typeChecker = program["getDiagnosticsProducingTypeChecker"]() as TypeChecker;
+        //    const diagnostics = typeChecker["getDiagnostics"](node, undefined) as ts.Diagnostic[];
+        //    console.error("Dia: %o", diagnostics.map(entry => typeof entry.messageText === "string" ? entry.messageText : "chain"));
+        //    console.error("Type count: %d", program.getTypeCount());
+        //}
+
+        /* TODO: Drop all old unreferenced types so we don't bloat the result */
+        const result = visit(node, initialContext) as SourceFile;
+        /* Update the registry with maybe the modified types */
+        Object.assign(registry, initialContext.registry);
+        return result;
     }
 }
 export default createTransformer;

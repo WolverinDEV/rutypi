@@ -17,7 +17,12 @@ module.exports = {
                 exclude: /node_modules/,
 
                 use: [
-                    "ts-loader"
+                    {
+                        loader: "ts-loader",
+                        options: {
+                            transpileOnly: false
+                        }
+                    }
                 ],
             },
         ],
@@ -25,7 +30,8 @@ module.exports = {
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
         alias: {
-            "rutypi": path.join(__dirname, "src", "index.ts")
+            "rutypi": path.join(__dirname, "src", "index.ts"),
+            "rutypi-sharedlib": path.join(__dirname, "shared")
         }
     },
     output: {

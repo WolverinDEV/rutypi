@@ -8,12 +8,15 @@ export class DatastoreModule extends Module {
 
     private readonly typeInfo: TypeRegistry;
 
-    private typeInfoBuildSnapshot?: TypeRegistry;
+    private typeInfoSnapshotVersion: number;
+    private typeInfoSnapshot?: TypeRegistry;
     private generatedSource?: sources.Source;
 
     constructor(typeInfo: TypeRegistry) {
         super("javascript/dynamic", null);
+
         this.typeInfo = typeInfo;
+        this.typeInfoSnapshotVersion = 0;
     }
 
     identifier() {
@@ -29,14 +32,16 @@ export class DatastoreModule extends Module {
     }
 
     needBuild(context, callback) {
+        const rebuildRequired = !_.isEqual(this.typeInfoSnapshot, this.typeInfo);
+        //console.error("needBuild(...) => %o", rebuildRequired);
         callback(
             null,
-            !_.isEqual(this.typeInfoBuildSnapshot, this.typeInfo)
+            rebuildRequired
         );
     }
 
     invalidateBuild() {
-        this.typeInfoBuildSnapshot = undefined;
+        this.typeInfoSnapshot = undefined;
         this.generatedSource = undefined;
     }
 
@@ -45,7 +50,8 @@ export class DatastoreModule extends Module {
         this.buildMeta = {};
         this.dependencies.length = 0;
 
-        this.typeInfoBuildSnapshot = _.clone(this.typeInfo);
+        this.typeInfoSnapshotVersion++;
+        this.typeInfoSnapshot = _.clone(this.typeInfo);
         this.generatedSource = undefined;
 
         callback();
@@ -56,7 +62,6 @@ export class DatastoreModule extends Module {
     }
 
     codeGeneration(/* context: CodeGenerationContext */) {
-        console.error("-------- Code gen!");
         const result = new Map<string, sources.Source>();
         result.set("javascript", this.generateSource());
         return {
@@ -65,15 +70,22 @@ export class DatastoreModule extends Module {
         } as any;
     }
 
+    updateHash(hash, context) {
+        hash.update(this.identifier());
+        hash.update(this.typeInfoSnapshotVersion.toString());
+        super.updateHash(hash, context);
+    }
+
     private generateSource(): sources.Source {
         if(this.generatedSource) {
             return this.generatedSource;
         }
 
-        this.generatedSource = new sources.RawSource("exports.default = " + JSON.stringify({
-            knownTypes: this.typeInfo
-        }) + ";");
+        let jsonObject = JSON.stringify({
+            knownTypes: this.typeInfoSnapshot
+        });
 
+        this.generatedSource = new sources.RawSource(`exports.default = ${jsonObject};`);
         return this.generatedSource;
     }
 }

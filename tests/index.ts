@@ -7,10 +7,13 @@ import {typeInfo, validateType} from "rutypi";
 import { Test } from "./types";
 
 const result = validateType<Test>({}, { noThrow: false }); //Should be transformed
-result.myMap;
+//result.somethingNewInHere_;
 
 console.error("Type info: %o", typeInfo<Test>());
 console.error("Type info: %o", typeInfo<{ value: string }>());
+
+let x: Test;
+//x.somethingNewInHere1;
 /*
 {
     console.error("Hello World"); // This should not be transformed
