@@ -32,7 +32,7 @@ module.exports = {
                     to: path.join(__dirname, "dist")
                 },
                 {
-                    from: path.join(__dirname, "readme.md"),
+                    from: path.join(__dirname, "README.md"),
                     to: path.join(__dirname, "dist")
                 },
                 {
@@ -58,7 +58,7 @@ module.exports = {
         }
     },
     externals: [
-        (_, request, callback) => {
+        ({context, request}, callback) => {
             if(request.match(/^webpack(-sources)?(\/.*|$).*/) || request.match(/^ts-loader(\/.*)$/)) {
                 callback(null, "commonjs " + request);
             } else {
