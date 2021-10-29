@@ -15,7 +15,7 @@ Example `webpack.config.js`:
 const { RutypiWebpackPlugin } = require("rutypi/webpack");
 
 module.exports = {
-    entry: './src/index.ts',
+    entry: './src/index.d.ts',
     plugins: [
         new RutypiWebpackPlugin(),
     ],

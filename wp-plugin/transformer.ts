@@ -13,9 +13,9 @@ import {
     SyntaxKind,
     TransformationContext,
 } from "typescript";
-import {Type, TypeRegistry} from "rutypi-sharedlib/types";
+import {Type, TypeRegistry} from "../shared/types";
 import * as _ from "lodash";
-import {describeNode, describeType} from "./describer";
+import {describeNode} from "./describer";
 
 type VisitContext = {
     program: ts.Program,

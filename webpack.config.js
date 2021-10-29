@@ -1,29 +1,49 @@
 const webpack = require("webpack");
 const path = require("path");
-const { RutypiWebpackPlugin } = require("./wp-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-    entry: './tests/index.ts',
-    mode: "development",
+    entry: {
+        webpack: {
+            import: "./wp-plugin/index.ts",
+            filename: "webpack.js"
+        },
+        runtime: {
+            import: "./src/index.ts",
+            filename: "index.js"
+        },
+    },
     devtool: "source-map",
+    mode: process.env.NODE_ENV === "development" ? "development" : "production",
     plugins: [
-        new RutypiWebpackPlugin(),
-        new webpack.CleanPlugin()
+        new webpack.CleanPlugin(),
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: path.join(__dirname, "package.json"),
+                    to: path.join(__dirname, "dist")
+                },
+                {
+                    from: path.join(__dirname, "package-lock.json"),
+                    to: path.join(__dirname, "dist")
+                },
+                {
+                    from: path.join(__dirname, ".npmignore"),
+                    to: path.join(__dirname, "dist")
+                },
+                {
+                    from: path.join(__dirname, "typefix/"),
+                    to: path.join(__dirname, "dist/")
+                },
+            ]
+        })
     ],
     module: {
         rules: [
             {
                 test: /\.tsx?$/,
                 exclude: /node_modules/,
-
-                use: [
-                    {
-                        loader: "ts-loader",
-                        options: {
-                            transpileOnly: false
-                        }
-                    }
-                ],
+                loader: "ts-loader"
             },
         ],
     },
@@ -31,11 +51,31 @@ module.exports = {
         extensions: ['.tsx', '.ts', '.js'],
         alias: {
             "rutypi": path.join(__dirname, "src", "index.ts"),
-            "rutypi-sharedlib": path.join(__dirname, "shared")
         }
     },
+    externals: [
+        (_, request, callback) => {
+            if(request.match(/^webpack(-sources)?(\/.*|$).*/) || request.match(/^ts-loader(\/.*)$/)) {
+                callback(null, "commonjs " + request);
+            } else {
+                callback();
+            }
+        },
+        {
+            "typescript": "commonjs typescript",
+            "ts-loader": "commonjs ts-loader",
+            "rutypi-datastore": "commonjs rutypi-datastore",
+            "fs-extra": "commonjs fs-extra",
+            "path": "commonjs path"
+        }
+    ],
+
+    target: "node",
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
+        path: process.env.OUTPUT_PATH || path.resolve(__dirname, "dist"),
+        filename: "plugin.js",
+
+        libraryTarget: "umd",
+        library: "rutypi"
     },
 };

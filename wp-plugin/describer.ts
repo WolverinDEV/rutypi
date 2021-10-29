@@ -1,17 +1,16 @@
 import {
-    IntersectionType,
     NumberLiteralType, ObjectFlags,
     ObjectType, PropertySignature,
     StringLiteralType, Symbol, SymbolFlags, SyntaxKind,
     Type, TypeAliasDeclaration,
     TypeChecker,
     TypeFlags,
-    TypeParameter, TypeParameterDeclaration, TypeReference, UnionType,
+    TypeParameter, TypeParameterDeclaration, TypeReference,
     Node,
     UnionTypeNode,
     ParenthesizedTypeNode
 } from "typescript";
-import {Type as TType} from "rutypi-sharedlib/types";
+import {Type as TType} from "../shared/types";
 import {displayFlags} from "./utils";
 
 type TypeDisplayContext = {

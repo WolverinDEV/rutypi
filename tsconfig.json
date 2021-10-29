@@ -5,12 +5,16 @@
     "target": "ES6",
     "sourceMap": true,
     "baseUrl": ".",
+    "declarationDir": "dist/ts",
+    "declarationMap": false,
+    "declaration": true,
     "paths": {
       "rutypi": ["src/index.ts"],
-      "rutypi-sharedlib/*": ["shared/*"]
     }
   },
   "exclude": [
+    "dist",
+    "d_dist",
     "node_modules",
     "tests_excluded"
   ]

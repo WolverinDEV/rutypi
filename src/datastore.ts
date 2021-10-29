@@ -3,7 +3,7 @@
  * It contains all required extra type information.
  */
 declare module "rutypi-datastore" {
-    import {Type} from "rutypi-sharedlib/types";
+    import { Type } from "rutypi";
 
     type TypeEntry = {
         status: "success",

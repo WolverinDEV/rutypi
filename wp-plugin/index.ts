@@ -1,14 +1,12 @@
-// A JavaScript class.
 import * as webpack from "webpack";
-import * as tsloaderInstances from "ts-loader/dist/instances";
-import * as tsloaderUtils from "ts-loader/dist/utils";
+import { DatastoreModule } from "./module";
+import { TypeRegistry } from "../shared/types";
 import tsTransformer from "./transformer";
-import { TSInstance } from "ts-loader/dist/interfaces";
-import { LoaderOptions } from "ts-loader/dist/interfaces";
-import {DatastoreModule} from "./module";
-import {TypeRegistry} from "rutypi-sharedlib/types";
-import { Program } from "typescript";
+import type { Program } from "typescript";
+import type { TSInstance } from "ts-loader/dist/interfaces";
+import type { LoaderOptions } from "ts-loader/dist/interfaces";
 
+declare const __non_webpack_require__;
 export class RutypiWebpackPlugin {
     private readonly typeRegistry: TypeRegistry;
     private readonly refCurrentProgram: { current: Program };
@@ -22,8 +20,16 @@ export class RutypiWebpackPlugin {
     }
 
     apply(compiler: webpack.Compiler) {
+        /*
+         * We need to use the resolve function of our parent module so we ensure that we're using their ts-loader
+         * instance as well. If we would not do this and symbolically link rutypi we may resolve ts-loader differently
+         * that webpack would.
+         */
+        const projectModule = __non_webpack_require__.main || module;
+
         /* Hook each ts-compiler with our custom transformer. */
         {
+            const tsloaderInstances = projectModule.require("ts-loader/dist/instances");
             const original = tsloaderInstances.initializeInstance;
             Object.assign(tsloaderInstances, {
                 initializeInstance: (loader: webpack.LoaderContext<LoaderOptions>, instance: TSInstance) => {
@@ -54,8 +60,9 @@ export class RutypiWebpackPlugin {
          * Since we need the program to access the TypeChecker we need to keep a reference to the currently used program.
          */
         {
-            const original = tsloaderUtils.ensureProgram;
-            Object.assign(tsloaderUtils, {
+            const tsloaderInstances = projectModule.require("ts-loader/dist/utils");
+            const original = tsloaderInstances.ensureProgram;
+            Object.assign(tsloaderInstances, {
                 ensureProgram: (instance: TSInstance) => {
                     const program = original(instance);
                     this.refCurrentProgram.current = program;

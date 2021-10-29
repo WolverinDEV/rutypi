@@ -1,7 +1,7 @@
 import { ValidateOptions, ValidateResult } from "./types";
 import { validateType as realValidateType } from "./validate";
 import { typeInfo as realTypeInfo } from "./typeinfo";
-import {Type} from "rutypi-sharedlib/types";
+import { Type } from "../shared/types";
 
 export {
     ValidateOptions,
@@ -14,7 +14,7 @@ export {
 
 export {
     Type
-} from "rutypi-sharedlib/types";
+} from "../shared/types";
 
 export /* native */ function typeInfo<T>(): Type {
     throw "this function call should have been overridden";

@@ -1,4 +1,4 @@
-import {Type, TypeReference} from "rutypi-sharedlib/types";
+import {Type, TypeReference} from "../shared/types";
 import datastore from "rutypi-datastore";
 
 export function lookupReference(reference: TypeReference | string): Type | undefined {

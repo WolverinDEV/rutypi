@@ -1,5 +1,5 @@
 import {Module, RuntimeGlobals, sources} from "webpack";
-import {Type, TypeRegistry} from "rutypi-sharedlib/types";
+import {Type, TypeRegistry} from "../shared/types";
 import * as _ from "lodash";
 
 export class DatastoreModule extends Module {

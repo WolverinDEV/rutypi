@@ -1,5 +1,5 @@
 import { ValidateOptions } from "./types";
-import {Type, TypeInvalid} from "rutypi-sharedlib/types";
+import {Type, TypeInvalid} from "../shared/types";
 import datastore from "rutypi-datastore";
 
 export const validateType = (typeInfo: Type | TypeInvalid, object: unknown, options?: ValidateOptions) => {

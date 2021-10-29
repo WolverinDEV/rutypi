@@ -1,6 +1,7 @@
 /.idea/
 /node_modules/
 /dist/
+/d_dist/
 
 # Exclude all js and js.map files.
 # I'm using auto compile of my IDE in order to automatically update the webpack plugin.
