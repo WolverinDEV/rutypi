@@ -9,3 +9,8 @@
 /tests/**/*.js*
 /src/**/*.js*
 /shared/**/*.js*
+
+/wp-plugin/**/*.d.ts
+/tests/**/*.d.ts
+/src/**/*.d.ts
+/shared/**/*.d.ts

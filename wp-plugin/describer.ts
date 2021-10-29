@@ -82,7 +82,6 @@ const TypeDescribeMap: {
 TypeDescribeMap[TypeFlags.Any] = { type: "any" };
 TypeDescribeMap[TypeFlags.Null] = { type: "null" };
 TypeDescribeMap[TypeFlags.Unknown] = { type: "unknown" };
-TypeDescribeMap[TypeFlags.Void] = { type: "void" };
 TypeDescribeMap[TypeFlags.String] = { type: "string" };
 TypeDescribeMap[TypeFlags.StringLiteral] = (type: StringLiteralType) => ({ type: "string", value: type.value });
 TypeDescribeMap[TypeFlags.Number] = { type: "number" };
