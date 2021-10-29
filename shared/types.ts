@@ -1,5 +1,10 @@
 export type TypeRegistry = {
-    [key: string]: Type
+    definitions: {
+        [key: string]: Type
+    },
+    definitionReferences: {
+        [key: string]: string[]
+    }
 }
 
 export type Type = {

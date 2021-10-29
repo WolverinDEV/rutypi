@@ -9,6 +9,7 @@ import {
     TypeParameter, TypeParameterDeclaration, TypeReference, UnionType
 } from "typescript";
 import {Type as TType} from "rutypi-sharedlib/types";
+import {displayFlags} from "./utils";
 
 type TypeDisplayContext = {
     typeChecker: TypeChecker,
@@ -19,21 +20,6 @@ type TypeDisplayContext = {
     references: {
         [key: string]: TType
     },
-}
-
-export const displayFlags = (flag: number, flags: object) => {
-    const activeFlags = [];
-    for(const key of Object.keys(flags)) {
-        const keyNumeric = parseInt(key);
-        if(isNaN(keyNumeric)) {
-            continue;
-        }
-
-        if((flag & keyNumeric) === keyNumeric) {
-            activeFlags.push(flags[keyNumeric]);
-        }
-    }
-    return activeFlags.join(", ") || "no flags";
 }
 
 const TypeDescribeMap: {

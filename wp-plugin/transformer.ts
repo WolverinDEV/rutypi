@@ -13,13 +13,15 @@ import {
     SyntaxKind,
     TransformationContext,
 } from "typescript";
-import {TypeRegistry} from "rutypi-sharedlib/types";
+import {Type, TypeRegistry} from "rutypi-sharedlib/types";
 import * as _ from "lodash";
 import {describeType} from "./describer";
 
 type VisitContext = {
     program: ts.Program,
-    registry: TypeRegistry,
+    registry: {
+        [key: string]: Type
+    },
     transformCtx: TransformationContext,
 
     depth: number,
@@ -269,10 +271,27 @@ const createTransformer = (refProgram: { current: ts.Program }, registry: TypeRe
         //    console.error("Type count: %d", program.getTypeCount());
         //}
 
-        /* TODO: Drop all old unreferenced types so we don't bloat the result */
+        for(const typeName of Object.keys(registry.definitionReferences)) {
+            const references = registry.definitionReferences[typeName];
+            const index = references.indexOf(node.fileName);
+            if(index === -1) {
+                continue;
+            }
+
+            references.splice(index, 1);
+            if(references.length === 0) {
+                delete registry.definitionReferences[typeName];
+                delete registry.definitions[typeName];
+            }
+        }
+
         const result = visit(node, initialContext) as SourceFile;
-        /* Update the registry with maybe the modified types */
-        Object.assign(registry, initialContext.registry);
+        for(const typeName of Object.keys(initialContext.registry)) {
+            registry.definitions[typeName] = initialContext.registry[typeName];
+            const references = registry.definitionReferences[typeName] || (registry.definitionReferences[typeName] = []);
+            references.push(node.fileName);
+        }
+
         return result;
     }
 }

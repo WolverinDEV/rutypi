@@ -20,6 +20,6 @@ interface A<K, V> extends C<K> {
 }
 
 export type Test = {
-    somethingNewInHere: string
+    somethingNewInHere123123: string
 }
 /* d d d d */

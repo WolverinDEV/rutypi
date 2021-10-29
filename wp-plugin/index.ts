@@ -14,12 +14,15 @@ export class RutypiWebpackPlugin {
     private readonly refCurrentProgram: { current: Program };
 
     constructor() {
-        this.typeRegistry = { };
+        this.typeRegistry = {
+            definitions: {},
+            definitionReferences: {}
+        };
         this.refCurrentProgram = { current: undefined };
     }
 
     apply(compiler: webpack.Compiler) {
-        /* Hook each ts-compiler with our custom transformer */
+        /* Hook each ts-compiler with our custom transformer. */
         {
             const original = tsloaderInstances.initializeInstance;
             Object.assign(tsloaderInstances, {

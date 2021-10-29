@@ -1,5 +1,5 @@
 import {Module, RuntimeGlobals, sources} from "webpack";
-import {TypeRegistry} from "rutypi-sharedlib/types";
+import {Type, TypeRegistry} from "rutypi-sharedlib/types";
 import * as _ from "lodash";
 
 export class DatastoreModule extends Module {
@@ -9,7 +9,7 @@ export class DatastoreModule extends Module {
     private readonly typeInfo: TypeRegistry;
 
     private typeInfoSnapshotVersion: number;
-    private typeInfoSnapshot?: TypeRegistry;
+    private typeInfoSnapshot?: { [key: string]: Type };
     private generatedSource?: sources.Source;
 
     constructor(typeInfo: TypeRegistry) {
@@ -32,7 +32,7 @@ export class DatastoreModule extends Module {
     }
 
     needBuild(context, callback) {
-        const rebuildRequired = !_.isEqual(this.typeInfoSnapshot, this.typeInfo);
+        const rebuildRequired = !_.isEqual(this.typeInfoSnapshot, this.typeInfo.definitions);
         //console.error("needBuild(...) => %o", rebuildRequired);
         callback(
             null,
@@ -51,7 +51,7 @@ export class DatastoreModule extends Module {
         this.dependencies.length = 0;
 
         this.typeInfoSnapshotVersion++;
-        this.typeInfoSnapshot = _.clone(this.typeInfo);
+        this.typeInfoSnapshot = _.clone(this.typeInfo.definitions);
         this.generatedSource = undefined;
 
         callback();
