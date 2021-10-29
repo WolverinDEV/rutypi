@@ -199,6 +199,9 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                 ]
             );
 
+        case "lookupReference":
+            return node;
+
         default:
             console.warn("Found import to %s but we don't know how to handle this.", functionName);
             return node;
