@@ -8,7 +8,8 @@ import {
     TypeParameter, TypeParameterDeclaration, TypeReference,
     Node,
     UnionTypeNode,
-    ParenthesizedTypeNode
+    ParenthesizedTypeNode,
+    StringLiteral, NumericLiteral
 } from "typescript";
 import {Type as TType} from "../shared/types";
 import {displayFlags} from "./utils";
@@ -42,7 +43,7 @@ NodeDescribeMap[SyntaxKind.UnionType] = (node: UnionTypeNode, ctx) => {
 
 NodeDescribeMap[SyntaxKind.IntersectionType] = (node: UnionTypeNode, ctx) => {
     return {
-        type: "union",
+        type: "intersection",
         types: node.types.map(node => describeNode(node, ctx))
     }
 };
@@ -52,7 +53,12 @@ NodeDescribeMap[SyntaxKind.UndefinedKeyword] = { type: "undefined" };
 NodeDescribeMap[SyntaxKind.NullKeyword] = { type: "null" };
 NodeDescribeMap[SyntaxKind.UnknownKeyword] = { type: "unknown" };
 NodeDescribeMap[SyntaxKind.StringKeyword] = { type: "string" };
+NodeDescribeMap[SyntaxKind.StringLiteral] = (node: StringLiteral) => ({ type: "string", value: node.text });
 NodeDescribeMap[SyntaxKind.NumberKeyword] = { type: "number" };
+NodeDescribeMap[SyntaxKind.NumericLiteral] = (node: NumericLiteral) => ({ type: "number", value: parseFloat(node.text) });
+NodeDescribeMap[SyntaxKind.BooleanKeyword] = { type: "boolean" };
+NodeDescribeMap[SyntaxKind.TrueKeyword] = { type: "boolean", value: true };
+NodeDescribeMap[SyntaxKind.FalseKeyword] = { type: "boolean", value: false };
 NodeDescribeMap[SyntaxKind.LiteralType] = mapToTypeAndProceed;
 NodeDescribeMap[SyntaxKind.TypeReference] = mapToTypeAndProceed;
 NodeDescribeMap[SyntaxKind.TypeLiteral] = mapToTypeAndProceed;

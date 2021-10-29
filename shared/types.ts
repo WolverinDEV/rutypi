@@ -7,26 +7,37 @@ export type TypeRegistry = {
     }
 }
 
-export type Type = TypeObject | TypeReference | {
+export type Type = TypeObject | TypeReference | TypeIntersection | TypeUnion | {
+    type: "any" | "unknown" | "undefined" | "null"
+} | TypeNumber | TypeString | TypeBoolean | TypeMethod;
+
+export type TypeUnion = {
     type: "union",
     types: Type[]
-} | {
+};
+
+export type TypeIntersection = {
     type: "intersection",
     types: Type[]
-} | {
-    type: "any" | "unknown" | "undefined" | "null" | "void"
-} | {
-    /* TODO: Add support for bigint as well */
+};
+
+export type TypeNumber = {
     type: "number",
     value?: number,
-} | {
+};
+
+export type TypeString = {
     type: "string",
     value?: string,
-} | {
+};
+
+export type TypeBoolean = {
     type: "boolean",
     value?: boolean
-} | {
-    type: "method"
+};
+
+export type TypeMethod = {
+    type: "method",
 };
 
 export type TypeObject = {
