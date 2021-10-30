@@ -8,10 +8,6 @@ cache:
 env:
   NODE_ENV="production"
 
-install:
-  - npm install
-  - npm install -g webpack-cli
-
 script:
   - npm run compile
   - npm run compile-tests
