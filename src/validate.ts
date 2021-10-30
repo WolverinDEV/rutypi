@@ -6,7 +6,7 @@ import {
     TypeNumber,
     TypeObject,
     TypeReference,
-    TypeString,
+    TypeString, TypeTuple,
     TypeUnion
 } from "../shared/types";
 import {lookupReference} from "./datahelper";
@@ -213,7 +213,36 @@ typeValidators["array"] = (currentObject: any, type: TypeArray, ctx: TypeValidat
     }
 
     return [];
-}
+};
+typeValidators["tuple"] = (currentObject: any, type: TypeTuple, ctx: TypeValidateContext) => {
+    if(!Array.isArray(currentObject)) {
+        return [`expected a tuple but received ${typeof currentObject}`];
+    }
+
+    const elements = type.elements || [];
+    const optionalElements = type.optionalElements || [];
+    if(elements.length > currentObject.length) {
+        return [`expected a tuple with at least ${elements.length} elements but received ${currentObject.length}`];
+    } else if(!type.dotdotdotElement && elements.length + optionalElements.length < currentObject.length) {
+        return [`expected a tuple with ${elements.length} to ${elements.length + optionalElements.length} elements but received ${currentObject.length}`];
+    }
+
+    const mergedElements = [...elements, ...optionalElements];
+    for(let index = 0; index < currentObject.length; index++) {
+        const innerCtx: TypeValidateContext = {
+            ...ctx,
+            accessStack: [...ctx.accessStack, `[${index}]`]
+        };
+
+        if(index < mergedElements.length) {
+            validateObject(mergedElements[index], currentObject[index], innerCtx);
+        } else {
+            validateObject(type.dotdotdotElement, currentObject[index], innerCtx);
+        }
+    }
+
+    return [];
+};
 
 const validateObject = (typeInfo: Type, object: any, ctx: TypeValidateContext) => {
     if(!(typeInfo.type in typeValidators)) {

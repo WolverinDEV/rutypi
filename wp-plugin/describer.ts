@@ -1,17 +1,30 @@
 import {
-    NumberLiteralType, ObjectFlags,
-    ObjectType, PropertySignature,
-    StringLiteralType, Symbol, SymbolFlags, SyntaxKind,
-    Type, TypeAliasDeclaration,
+    ArrayTypeNode,
+    NamedTupleMember,
+    Node,
+    NumberLiteralType,
+    NumericLiteral,
+    ObjectFlags,
+    ObjectType,
+    OptionalTypeNode,
+    ParenthesizedTypeNode,
+    PropertySignature, RestTypeNode,
+    StringLiteral,
+    StringLiteralType,
+    Symbol,
+    SymbolFlags,
+    SyntaxKind,
+    TupleTypeNode,
+    Type,
+    TypeAliasDeclaration,
     TypeChecker,
     TypeFlags,
-    TypeParameter, TypeParameterDeclaration, TypeReference,
-    Node,
-    UnionTypeNode,
-    ParenthesizedTypeNode,
-    StringLiteral, NumericLiteral, ArrayTypeNode
+    TypeParameter,
+    TypeParameterDeclaration,
+    TypeReference,
+    UnionTypeNode
 } from "typescript";
-import {Type as TType} from "../shared/types";
+import {Type as TType, TypeTuple} from "../shared/types";
 import {displayFlags} from "./utils";
 
 type TypeDisplayContext = {
@@ -66,6 +79,84 @@ NodeDescribeMap[SyntaxKind.ArrayType] = (node: ArrayTypeNode, ctx) => ({
     type: "array",
     elementType: describeNode(node.elementType, ctx)
 });
+NodeDescribeMap[SyntaxKind.TupleType] = (node: TupleTypeNode, ctx) => {
+    const result: TypeTuple = {
+        type: "tuple",
+        elements: [],
+        optionalElements: []
+    };
+
+    const handleRestType = (elementType: TType) => {
+        if(typeof result.dotdotdotElement !== "undefined") {
+            throw "encountered two rest type definitons";
+        }
+
+        if(elementType.type === "array") {
+            result.dotdotdotElement = elementType.elementType;
+        } else {
+            result.dotdotdotElement = elementType;
+        }
+    }
+
+    /*
+     * Optional types can only follow after elements.
+     * Only optional types can follow. This keeps all elements in order.
+     */
+    for(const element of node.elements) {
+        switch (element.kind) {
+            case SyntaxKind.NamedTupleMember: {
+                const namedTupleMember = element as NamedTupleMember;
+                const elementType = describeNode(namedTupleMember.type, ctx);
+
+                if(namedTupleMember.dotDotDotToken) {
+                    handleRestType(elementType);
+                } else if(namedTupleMember.questionToken) {
+                    result.optionalElements.push(elementType);
+                } else {
+                    result.elements.push(elementType);
+                }
+                break;
+            }
+
+            case SyntaxKind.OptionalType:
+                const optionalType = element as OptionalTypeNode;
+                result.optionalElements.push(describeNode(optionalType.type, ctx));
+                break;
+
+            case SyntaxKind.RestType: {
+                const restType = element as RestTypeNode;
+                const elementType = describeNode(restType.type, ctx);
+                handleRestType(elementType);
+                break;
+            }
+
+            default:
+                result.elements.push(describeNode(element, ctx));
+                break;
+        }
+    }
+
+    if(result.elements.length === 0) {
+        delete result.elements;
+    }
+    if(result.optionalElements.length === 0) {
+        delete result.optionalElements;
+    }
+
+    return result;
+};
+NodeDescribeMap[SyntaxKind.NamedTupleMember] = () => {
+    /* should be handled directly within the tuple */
+    throw "this seems to be a bug";
+};
+NodeDescribeMap[SyntaxKind.OptionalType] = () => {
+    /* should be handled directly within the tuple */
+    throw "this seems to be a bug";
+};
+NodeDescribeMap[SyntaxKind.RestType] = () => {
+    /* should be handled directly within the tuple */
+    throw "this seems to be a bug";
+};
 
 export const describeNode = (node: Node, ctx: TypeDisplayContext): TType => {
     let result = NodeDescribeMap[node.kind];
