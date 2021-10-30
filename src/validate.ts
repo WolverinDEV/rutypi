@@ -14,7 +14,10 @@ import {lookupReference} from "./datahelper";
 export const validateType = (typeInfo: Type | TypeInvalid, object: any, options?: ValidateOptions) => {
     const context: TypeValidateContext = {
         accessStack: [],
-        errors: []
+        errors: [],
+
+        currentTypeArguments: [],
+        currentTypeNames: []
     };
     if(typeInfo.type === "invalid") {
         context.errors.push({
@@ -48,7 +51,10 @@ export const validateType = (typeInfo: Type | TypeInvalid, object: any, options?
 
 type TypeValidateContext = {
     accessStack: string[],
-    errors: TypeValidateError[]
+    errors: TypeValidateError[],
+
+    currentTypeNames: string[],
+    currentTypeArguments: Type[]
 };
 
 const typeValidators: {
@@ -103,21 +109,21 @@ typeValidators["object"] = (currentObject: any, type: TypeObject, ctx: TypeValid
 
     const errors = [];
 
-    /* TODO: Type arguments! */
     const optionalMembers = Object.keys(type.optionalMembers || {});
     const members = { ...type.members, ...type.optionalMembers };
 
     for(const memberName of Object.keys(members)) {
         if(!(memberName in currentObject)) {
             if(optionalMembers.indexOf(memberName) === -1) {
-                errors.push(`missing member "${memberName}"`);
+                errors.push(`missing object member "${memberName}"`);
             }
             continue;
         }
 
-        const innerCtx = {
+        const innerCtx: TypeValidateContext = {
             ...ctx,
-            accessStack: [...ctx.accessStack, memberName]
+            accessStack: [...ctx.accessStack, memberName],
+            currentTypeNames: type.typeArgumentNames || []
         };
 
         validateObject(members[memberName], currentObject[memberName], innerCtx);
@@ -127,20 +133,43 @@ typeValidators["object"] = (currentObject: any, type: TypeObject, ctx: TypeValid
 };
 
 typeValidators["object-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
-    /* TODO: Type arguments! */
+    const errors = [];
+
+    const innerContext: TypeValidateContext = {
+        ...ctx,
+        currentTypeArguments: type.typeArguments.map(type => {
+            if(type.type === "type-reference") {
+                const index = ctx.currentTypeNames.indexOf(type.target);
+                if(index === -1) {
+                    errors.push(`unknown template parameter ${type.target}`);
+                    return { type: "any" };
+                }
+
+                return ctx.currentTypeArguments[index];
+            } else {
+                return type;
+            }
+        })
+    };
+
     const reference = lookupReference(type);
     if(typeof reference === "undefined") {
         return [`invalid type reference to ${type.target}`];
     }
 
-    validateObject(reference, currentObject, ctx);
+    validateObject(reference, currentObject, innerContext);
     return [];
 };
+typeValidators["type-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
+    const index = ctx.currentTypeNames.indexOf(type.target);
+    if(index === -1) {
+        return [`unknown template parameter ${type.target}`];
+    }
 
-typeValidators["type-reference"] = () => {
-    /* A type reference should only be encountered within an object. */
-    throw "this seems to be a compiler bug";
-};
+    validateObject(ctx.currentTypeArguments[index], currentObject, ctx);
+    return [];
+}
+
 typeValidators["union"] = (currentObject: any, type: TypeUnion, ctx: TypeValidateContext) => {
     for(const typeVariant of type.types) {
         const innerContext = {
