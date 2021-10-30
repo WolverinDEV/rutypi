@@ -1,6 +1,7 @@
 const webpack = require("webpack");
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const { RutypiWebpackPlugin } = require("./wp-plugin/index");
 
 module.exports = {
     entry: {
@@ -11,7 +12,7 @@ module.exports = {
         runtime: {
             import: "./src/index.ts",
             filename: "index.js"
-        },
+        }
     },
     devtool: "source-map",
     mode: process.env.NODE_ENV === "development" ? "development" : "production",

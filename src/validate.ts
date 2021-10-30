@@ -129,6 +129,7 @@ typeValidators["object"] = (currentObject: any, type: TypeObject, ctx: TypeValid
         validateObject(members[memberName], currentObject[memberName], innerCtx);
     }
 
+    /* TODO: Object extends */
     return errors;
 };
 

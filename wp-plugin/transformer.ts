@@ -69,6 +69,11 @@ nodeTransformer[SyntaxKind.Block] = (node: Block, ctx) => {
 }
 
 nodeTransformer[SyntaxKind.ImportDeclaration] = (node: ImportDeclaration, ctx) => {
+    if(typeof node.importClause === "undefined") {
+        /* just a file import without any imports. */
+        return node;
+    }
+
     const importClause = node.importClause!;
     const importModule = (node.moduleSpecifier as StringLiteral).text;
 

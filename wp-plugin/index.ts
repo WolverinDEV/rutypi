@@ -25,7 +25,12 @@ export class RutypiWebpackPlugin {
          * instance as well. If we would not do this and symbolically link rutypi we may resolve ts-loader differently
          * that webpack would.
          */
-        const projectModule = __non_webpack_require__.main || module;
+        let projectModule;
+        try {
+            /* __non_webpack_require__ might not be defined when using the plugin from source */
+            projectModule = __non_webpack_require__.main;
+        } catch {}
+        projectModule = projectModule || module;
 
         /* Hook each ts-compiler with our custom transformer. */
         {
