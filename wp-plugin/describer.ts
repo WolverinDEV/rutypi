@@ -9,7 +9,7 @@ import {
     Node,
     UnionTypeNode,
     ParenthesizedTypeNode,
-    StringLiteral, NumericLiteral
+    StringLiteral, NumericLiteral, ArrayTypeNode
 } from "typescript";
 import {Type as TType} from "../shared/types";
 import {displayFlags} from "./utils";
@@ -62,6 +62,10 @@ NodeDescribeMap[SyntaxKind.FalseKeyword] = { type: "boolean", value: false };
 NodeDescribeMap[SyntaxKind.LiteralType] = mapToTypeAndProceed;
 NodeDescribeMap[SyntaxKind.TypeReference] = mapToTypeAndProceed;
 NodeDescribeMap[SyntaxKind.TypeLiteral] = mapToTypeAndProceed;
+NodeDescribeMap[SyntaxKind.ArrayType] = (node: ArrayTypeNode, ctx) => ({
+    type: "array",
+    elementType: describeNode(node.elementType, ctx)
+});
 
 export const describeNode = (node: Node, ctx: TypeDisplayContext): TType => {
     let result = NodeDescribeMap[node.kind];

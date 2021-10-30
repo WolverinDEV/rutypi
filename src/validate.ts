@@ -1,6 +1,6 @@
 import {TypeValidateError, ValidateError, ValidateOptions, ValidateResult} from "./types";
 import {
-    Type,
+    Type, TypeArray,
     TypeBoolean, TypeIntersection,
     TypeInvalid,
     TypeNumber,
@@ -198,6 +198,22 @@ typeValidators["intersection"] = (currentObject: any, type: TypeIntersection, ct
     type.types.forEach(type => validateObject(type, currentObject, ctx));
     return [];
 };
+typeValidators["array"] = (currentObject: any, type: TypeArray, ctx: TypeValidateContext) => {
+    if(!Array.isArray(currentObject)) {
+        return [`expected an array but received ${typeof currentObject}`];
+    }
+
+    for(let index = 0; index < currentObject.length; index++) {
+        const innerCtx: TypeValidateContext = {
+            ...ctx,
+            accessStack: [...ctx.accessStack, `[${index}]`]
+        };
+
+        validateObject(type.elementType, currentObject[index], innerCtx);
+    }
+
+    return [];
+}
 
 const validateObject = (typeInfo: Type, object: any, ctx: TypeValidateContext) => {
     if(!(typeInfo.type in typeValidators)) {

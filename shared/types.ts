@@ -9,7 +9,7 @@ export type TypeRegistry = {
 
 export type Type = TypeObject | TypeReference | TypeIntersection | TypeUnion | {
     type: "any" | "unknown" | "undefined" | "null"
-} | TypeNumber | TypeString | TypeBoolean | TypeMethod;
+} | TypeNumber | TypeString | TypeBoolean | TypeMethod | TypeArray;
 
 export type TypeUnion = {
     type: "union",
@@ -56,6 +56,11 @@ export type TypeReference = {
     type: "object-reference" | "type-reference",
     target: string,
     typeArguments: Type[],
+};
+
+export type TypeArray = {
+    type: "array",
+    elementType: Type,
 };
 
 export type TypeInvalid = {
