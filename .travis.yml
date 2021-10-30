@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - 15
+  - 12
 
 cache:
   npm: false
@@ -9,6 +9,8 @@ env:
   NODE_ENV="production"
 
 script:
+  - ls -lah
+  - ls -lah node_modules
   - npm run compile
   - npm run compile-tests
   - jest
