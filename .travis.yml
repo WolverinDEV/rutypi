@@ -1,0 +1,12 @@
+language: node_js
+node_js:
+  - 15
+
+env:
+  NODE_ENV="production"
+
+script:
+  - npm install
+  - npm run compile
+  - npm run compile-tests
+  - jest
