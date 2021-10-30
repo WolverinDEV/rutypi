@@ -224,7 +224,11 @@ typeValidators["tuple"] = (currentObject: any, type: TypeTuple, ctx: TypeValidat
     if(elements.length > currentObject.length) {
         return [`expected a tuple with at least ${elements.length} elements but received ${currentObject.length}`];
     } else if(!type.dotdotdotElement && elements.length + optionalElements.length < currentObject.length) {
-        return [`expected a tuple with ${elements.length} to ${elements.length + optionalElements.length} elements but received ${currentObject.length}`];
+        if(optionalElements.length === 0) {
+            return [`expected a tuple with ${elements.length} elements but received ${currentObject.length}`];
+        } else {
+            return [`expected a tuple with ${elements.length} to ${elements.length + optionalElements.length} elements but received ${currentObject.length}`];
+        }
     }
 
     const mergedElements = [...elements, ...optionalElements];
