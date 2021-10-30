@@ -9,7 +9,7 @@ env:
   NODE_ENV="production"
 
 script:
-  - npm init
+  - npm install
   - npm run compile
   - npm run compile-tests
   - jest
