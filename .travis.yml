@@ -8,6 +8,9 @@ cache:
 env:
   NODE_ENV="production"
 
+before_install:
+  - npm install -g npm@8.1.2
+
 script:
   - ls -lah
   - ls -lah node_modules
