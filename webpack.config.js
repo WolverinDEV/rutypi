@@ -1,7 +1,6 @@
 const webpack = require("webpack");
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-const { RutypiWebpackPlugin } = require("./wp-plugin/index");
 
 module.exports = {
     entry: {
@@ -53,10 +52,7 @@ module.exports = {
         ],
     },
     resolve: {
-        extensions: ['.tsx', '.ts', '.js'],
-        alias: {
-            "rutypi": path.join(__dirname, "src", "index.ts"),
-        }
+        extensions: ['.ts', '.js'],
     },
     externals: [
         ({context, request}, callback) => {

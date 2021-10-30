@@ -1,3 +1,4 @@
+/*
 interface B<K> {
     mainKey: K
 }
@@ -18,3 +19,4 @@ interface A<K, V> extends C<K> {
 export type Test = {
     myMap: A<string, A<number, any>>
 }
+ */
