@@ -8,11 +8,9 @@ cache:
 env:
   NODE_ENV="production"
 
-before_install:
-  - npm install -g npm@8.1.2
-
 install:
   - npm install
+  - npm install -g webpack-cli
 
 script:
   - npm run compile
