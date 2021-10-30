@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
+  "dependencies": {
     "@types/jest": "^27.0.2",
     "@types/lodash": "^4.14.176",
     "@types/webpack": "^5.28.0",
