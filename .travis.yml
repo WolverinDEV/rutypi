@@ -8,6 +8,9 @@ cache:
 env:
   NODE_ENV="production"
 
+before_install:
+  - chmod +x scripts/*.sh
+
 install:
   - npm install -g npm@8.1.2
   - npm ci
@@ -16,3 +19,11 @@ script:
   - npm run compile || travis_terminate 1;
   - npm run compile-tests || travis_terminate 1;
   - jest || travis_terminate 1;
+
+deploy:
+  provider: script
+  script: bash scripts/deploy.sh
+  skip_cleanup: true
+  on:
+    branch: master
+    condition: ${TRAVIS_COMMIT_MESSAGE} == *"[ci release]"*
