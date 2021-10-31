@@ -231,6 +231,10 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
     };
 
     referenceResult.target = referenceId;
+    if(referenceResult.typeArguments.length === 0) {
+        delete referenceResult.typeArguments;
+    }
+
     if(referenceId in ctx.references) {
         return referenceResult;
     } else if(referenceId) {

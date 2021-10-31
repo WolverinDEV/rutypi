@@ -138,7 +138,7 @@ typeValidators["object-reference"] = (currentObject: any, type: TypeReference, c
 
     const innerContext: TypeValidateContext = {
         ...ctx,
-        currentTypeArguments: type.typeArguments.map(type => {
+        currentTypeArguments: (type.typeArguments || []).map(type => {
             if(type.type === "type-reference") {
                 const index = ctx.currentTypeNames.indexOf(type.target);
                 if(index === -1) {

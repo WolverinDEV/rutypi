@@ -55,7 +55,7 @@ export type TypeObject = {
 export type TypeReference = {
     type: "object-reference" | "type-reference",
     target: string,
-    typeArguments: Type[],
+    typeArguments?: Type[],
 };
 
 export type TypeArray = {
