@@ -1,6 +1,6 @@
-# Rutypi a runtime type information and verify library
+# Rutypi a runtime type information and verify library [![Build Status](https://app.travis-ci.com/WolverinDEV/rutypi.svg?branch=master)](https://app.travis-ci.com/WolverinDEV/rutypi) [![Npm package version](https://badgen.net/npm/v/rutypi)](https://npmjs.com/package/rutypi) [![GitHub issues](https://img.shields.io/github/issues/WolverinDEV/rutypi.svg)](https://GitHub.com/WolverinDEV/rutypi/issues/)
 Rutypi is a library which allows you to automatically export type information for runtime usage.  
-Additionally, it provides a mechanism to check if an object matches it's declared type out of the box (see [validateType](#validatetype)).
+Additionally, it provides a mechanism to check if an object matches it's declared type out of the box.
   
 ## Requirements
 In order to use rutypi you will need
