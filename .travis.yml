@@ -14,6 +14,9 @@ before_install:
 script:
   - ls -lah
   - ls -lah node_modules
+  - npm ci --loglevel verbose
+  - ls -lah
+  - ls -lah node_modules
   - npm run compile
   - npm run compile-tests
   - jest
