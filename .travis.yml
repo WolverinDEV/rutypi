@@ -8,15 +8,11 @@ cache:
 env:
   NODE_ENV="production"
 
-before_install:
+install:
   - npm install -g npm@8.1.2
+  - npm ci
 
 script:
-  - ls -lah
-  - ls -lah node_modules
-  - npm ci --loglevel verbose
-  - ls -lah
-  - ls -lah node_modules
-  - npm run compile
-  - npm run compile-tests
-  - jest
+  - npm run compile || travis_terminate 1;
+  - npm run compile-tests || travis_terminate 1;
+  - jest || travis_terminate 1;

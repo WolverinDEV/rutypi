@@ -3,7 +3,7 @@ const path = require("path");
 
 
 
-const rutypiPath = path.join("..", "dist");
+const rutypiPath = path.join(__dirname, "..", "dist");
 const { RutypiWebpackPlugin } = require(`${rutypiPath}/webpack`);
 
 module.exports = {
