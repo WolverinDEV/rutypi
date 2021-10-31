@@ -49,13 +49,13 @@ export class RutypiWebpackPlugin {
                     }
 
                     if(instance.loaderOptions.transpileOnly) {
-                        /* FIXME: Re-enable this! */
-                        //throw new Error("rutypi can not work in transpileOnly mode");
+                        const logger = loader._compilation.getLogger("rutypi");
+                        logger.warn("Rutypi will not work property with ts-loader in transpileOnly mode!");
                     }
 
                     const transformers = instance.transformers || (instance.transformers = {});
                     const transformerArray = transformers.before || (transformers.before = []);
-                    transformerArray.push(tsTransformer(this.refCurrentProgram, this.typeRegistry));
+                    transformerArray.push(tsTransformer(this.refCurrentProgram, loader._compilation, this.typeRegistry));
                 }
             });
         }

@@ -16,9 +16,13 @@ import {
 import {Type, TypeRegistry} from "../shared/types";
 import * as _ from "lodash";
 import {describeNode} from "./describer";
+import {Compilation, NormalModule, WebpackError} from "webpack";
+import * as path from "path";
 
 type VisitContext = {
     program: ts.Program,
+    compilation: Compilation,
+
     registry: {
         [key: string]: Type
     },
@@ -106,6 +110,55 @@ nodeTransformer[SyntaxKind.ImportDeclaration] = (node: ImportDeclaration, ctx) =
     return node;
 }
 
+const createWebpackError = (node: Node, errorDetails: any, ctx: VisitContext) => {
+    const error = new WebpackError(errorDetails.toString());
+    const sourceFile = node.getSourceFile();
+
+    if(sourceFile) {
+        error.file = path.resolve(sourceFile.fileName);
+        for(const module of ctx.compilation.modules) {
+            if(!("resource" in module)) {
+                continue;
+            }
+
+            /* module instanceof NormalModule will return false though! */
+            let normalModule = module as NormalModule;
+            if(path.resolve(normalModule.resource) === error.file) {
+                error.module = module;
+                break;
+            }
+        }
+
+        const startInfo = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile, false));
+        const endInfo = sourceFile.getLineAndCharacterOfPosition(node.getEnd());
+        error.loc = {
+            name: error.file,
+            start: {
+                line: startInfo.line,
+                column: startInfo.character
+            },
+            end: {
+                line: endInfo.line,
+                column: endInfo.character
+            }
+        };
+    } else {
+        error.file = "artificial typescript node";
+    }
+    return error;
+};
+
+const registerWebpackError = (error: WebpackError, ctx: VisitContext) => {
+    for(const regError of ctx.compilation.errors) {
+        if(_.isEqual(regError.loc, error.loc)) {
+            /* Error already registered. */
+            return;
+        }
+    }
+
+    ctx.compilation.errors.push(error);
+};
+
 nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
     let moduleName: string, functionName: string;
     switch (node.expression.kind) {
@@ -183,11 +236,15 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                     prefix: "",
                 });
             } catch (error) {
-                console.error("ERROR: %s - %o", error);
+                registerWebpackError(
+                    createWebpackError(node, error, ctx),
+                    ctx
+                );
+
                 typeData = {
                     status: "invalid",
                     message: error.toString()
-                }
+                };
             }
 
             const { factory } = ctx.transformCtx;
@@ -246,11 +303,13 @@ const visit = <T extends Node>(node: T, context: VisitContext) => {
     return newNode || [];
 }
 
-const createTransformer = (refProgram: { current: ts.Program }, registry: TypeRegistry) => (ctx: TransformationContext) => {
+const createTransformer = (refProgram: { current: ts.Program }, compilation: Compilation, registry: TypeRegistry) => (ctx: TransformationContext) => {
     return (node: SourceFile) => {
         console.error("Visit: %s", node.fileName);
+        debugger;
         const initialContext: VisitContext = {
             program: refProgram.current,
+            compilation: compilation,
             registry: {},
 
             transformCtx: ctx,

@@ -184,7 +184,7 @@ TypeDescribeMap[TypeFlags.Number] = { type: "number" };
 TypeDescribeMap[TypeFlags.NumberLiteral] = (type: NumberLiteralType) => ({ type: "number", value: type.value });
 TypeDescribeMap[TypeFlags.Boolean] = { type: "boolean" };
 TypeDescribeMap[TypeFlags.BooleanLiteral] = (type: object) => ({ type: "boolean", value: type["intrinsicName"] === "true" });
-TypeDescribeMap[TypeFlags.TypeParameter] = (type: TypeParameter) => ({ type: "type-reference", target: type.symbol.name, typeArguments: [] });
+TypeDescribeMap[TypeFlags.TypeParameter] = (type: TypeParameter) => ({ type: "type-reference", target: type.symbol.name });
 TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
     let typeArguments = type.aliasTypeArguments?.map(type => describeType(type, ctx));
     let referenceResult: TType & { type: "object-reference" } = {
@@ -198,7 +198,7 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
         /* Serialize this in line or as a reference */
         referenceId = type.aliasSymbol ? "T" + type.symbol["id"] + "_" + type.aliasSymbol.name : undefined;
     } else if(type.objectFlags & ObjectFlags.Class) {
-        throw "classes are not allowed";
+        throw "Classes can't be described.\nOnly primitive types, objects and interfaces can be described.";
     } else if(type.objectFlags & ObjectFlags.Interface) {
         /*
          * All right, can be serialized and will be put in as a reference.
@@ -231,7 +231,7 @@ TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
     };
 
     referenceResult.target = referenceId;
-    if(referenceResult.typeArguments.length === 0) {
+    if(typeof referenceResult.typeArguments === "undefined" || referenceResult.typeArguments.length === 0) {
         delete referenceResult.typeArguments;
     }
 
