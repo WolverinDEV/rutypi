@@ -1,6 +1,6 @@
 language: node_js
 node_js:
-  - 12
+  - 16
 
 cache:
   npm: false
@@ -12,7 +12,6 @@ before_install:
   - chmod +x scripts/*.sh
 
 install:
-  - npm install -g npm@8.1.2
   - npm ci
 
 script:
