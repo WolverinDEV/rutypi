@@ -1,6 +1,6 @@
 import {Type, typeInfo} from "rutypi";
 
-test("simple union", () => {
+test("describe simple union", () => {
     expect(typeInfo<number | string>()).toStrictEqual<Type>({
         type: "union",
         types: [
@@ -14,7 +14,7 @@ test("simple union", () => {
     });
 });
 
-test("simple union with literals", () => {
+test("describe simple union with literals", () => {
     expect(typeInfo<123 | "hello!">()).toStrictEqual<Type>({
         type: "union",
         types: [
@@ -30,7 +30,7 @@ test("simple union with literals", () => {
     });
 });
 
-test("simple union with literals (without reduction)", () => {
+test("describe simple union with literals (without reduction)", () => {
     /* Type info can just be reduced to number | string but we're trying to avoid this at the current stage */
     expect(typeInfo<123 | number | string | "hello!">()).toStrictEqual<Type>({
         type: "union",
@@ -52,17 +52,3 @@ test("simple union with literals (without reduction)", () => {
         ]
     });
 });
-
-/*
-interface A {
-    color: string,
-    width: number,
-}
-
-interface B {
-    width: number
-}
-
-validateType<A & B>(null);
-validateType<A & { color: string }>(null);
- */
