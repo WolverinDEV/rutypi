@@ -9,7 +9,7 @@ export type TypeRegistry = {
 
 export type Type = TypeObject | TypeReference | TypeIntersection | TypeUnion | {
     type: "any" | "unknown" | "undefined" | "null"
-} | TypeNumber | TypeString | TypeBoolean | TypeMethod | TypeArray | TypeTuple;
+} | TypeNumber | TypeBigInt | TypeString | TypeBoolean | TypeMethod | TypeArray | TypeTuple;
 
 export type TypeUnion = {
     type: "union",
@@ -24,6 +24,11 @@ export type TypeIntersection = {
 export type TypeNumber = {
     type: "number",
     value?: number,
+};
+
+export type TypeBigInt = {
+    type: "bigint",
+    value?: string,
 };
 
 export type TypeString = {
