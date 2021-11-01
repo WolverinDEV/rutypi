@@ -64,14 +64,14 @@ const typeValidators: {
 typeValidators["any"] = () => [];
 typeValidators["unknown"] = () => [];
 typeValidators["undefined"] = (currentObject: any) => {
-    if(typeof currentObject !== "undefined") {
+    if(currentObject !== undefined) {
         return [`expected undefined but received ${typeof currentObject}`];
     }
 
     return [];
 };
 typeValidators["null"] = (currentObject: any) => {
-    if(typeof currentObject !== null) {
+    if(currentObject !== null) {
         return [`expected null but received ${typeof currentObject}`];
     }
 
@@ -133,13 +133,13 @@ typeValidators["object"] = (currentObject: any, type: TypeObject, ctx: TypeValid
     return errors;
 };
 
-typeValidators["object-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
+typeValidators["type-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
     const errors = [];
 
     const innerContext: TypeValidateContext = {
         ...ctx,
         currentTypeArguments: (type.typeArguments || []).map(type => {
-            if(type.type === "type-reference") {
+            if(type.type === "type-parameter-reference") {
                 const index = ctx.currentTypeNames.indexOf(type.target);
                 if(index === -1) {
                     errors.push(`unknown template parameter ${type.target}`);
@@ -161,7 +161,7 @@ typeValidators["object-reference"] = (currentObject: any, type: TypeReference, c
     validateObject(reference, currentObject, innerContext);
     return [];
 };
-typeValidators["type-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
+typeValidators["type-parameter-reference"] = (currentObject: any, type: TypeReference, ctx: TypeValidateContext) => {
     const index = ctx.currentTypeNames.indexOf(type.target);
     if(index === -1) {
         return [`unknown template parameter ${type.target}`];

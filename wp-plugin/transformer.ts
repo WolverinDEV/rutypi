@@ -204,9 +204,17 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
             /* TODO: This could be a reference to our import */
             return node;
 
+        case SyntaxKind.CallExpression:
+            /* Call expressions for call expressions will never be our function */
+            return node;
+
         case SyntaxKind.SuperKeyword:
         case SyntaxKind.ThisKeyword:
             /* these calls can never be a call to an imported function */
+            return node;
+
+        case SyntaxKind.ImportKeyword:
+            /* We don't handle dynamic imports */
             return node;
 
         default:
@@ -223,7 +231,7 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
     switch (functionName) {
         case "validateType":
         case "typeInfo":
-            if(node.typeArguments.length !== 1) {
+            if(node.typeArguments?.length !== 1) {
                 report(node, "invalid type argument length");
                 return node;
             }

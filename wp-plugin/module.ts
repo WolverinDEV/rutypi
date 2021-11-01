@@ -86,7 +86,7 @@ export class DatastoreModule extends Module {
             knownTypes: this.typeInfoSnapshot
         });
 
-        this.generatedSource = new sources.RawSource(`exports.default = ${jsonObject};`);
+        this.generatedSource = new sources.RawSource(`Object.defineProperty(exports, "__esModule", { value: true }); exports.default = ${jsonObject};`);
         return this.generatedSource;
     }
 }

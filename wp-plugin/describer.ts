@@ -72,7 +72,6 @@ NodeDescribeMap[SyntaxKind.IntersectionType] = (node: UnionTypeNode, ctx) => {
     }
 };
 
-/* NullLiteral | BooleanLiteral | LiteralExpression | PrefixUnaryExpression */
 NodeDescribeMap[SyntaxKind.ParenthesizedType] = (node: ParenthesizedTypeNode, ctx) => describeNode(node.type, ctx);
 NodeDescribeMap[SyntaxKind.UndefinedKeyword] = { type: "undefined" };
 NodeDescribeMap[SyntaxKind.NullKeyword] = { type: "null" };

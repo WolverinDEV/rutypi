@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "module": "CommonJS",
-    "target": "ES6",
+    "target": "es6",
+    "module": "ESNext",
+    "moduleResolution": "Node",
     "sourceMap": true,
     "baseUrl": ".",
+    "esModuleInterop": true,
     "declarationDir": "dist/ts",
     "declarationMap": false,
     "declaration": true,
     "paths": {
-      "rutypi": ["src/index.ts"],
+      "rutypi": ["src/index.ts"]
     }
   },
   "exclude": [
