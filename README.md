@@ -1,6 +1,9 @@
 # Rutypi a runtime type information and verify library [![Build Status](https://app.travis-ci.com/WolverinDEV/rutypi.svg?branch=master)](https://app.travis-ci.com/WolverinDEV/rutypi) [![Npm package version](https://badgen.net/npm/v/rutypi)](https://npmjs.com/package/rutypi) [![GitHub issues](https://img.shields.io/github/issues/WolverinDEV/rutypi.svg)](https://GitHub.com/WolverinDEV/rutypi/issues/)
 Rutypi is a library which allows you to automatically export type information for runtime usage.  
-Additionally, it provides a mechanism to check if an object matches it's declared type out of the box.
+Additionally, it provides a mechanism to check if an object matches it's declared type out of the box.  
+  
+Note: The current version is a beta version and this library is still under heavy development.  
+This means that may not all declarations are final and can change even in patches!  
   
 ## Requirements
 In order to use rutypi you will need
@@ -105,6 +108,9 @@ An example could be found [here](#typeinfo).
 
 ## Examples
 Fully functionally examples can be found within the `examples` folder.  
+
+## Performance
+This section needs some improvements.
   
 ## Limitations
 This plugin can not be used with `transpileOnly` setting enabled for `ts-loader`. 
