@@ -1,31 +1,25 @@
 import {
-    ArrayTypeNode,
+    ArrayTypeNode, BigIntLiteral,
+    InterfaceDeclaration, LiteralTypeNode,
     NamedTupleMember,
     Node,
-    NumberLiteralType,
     NumericLiteral,
-    ObjectFlags,
-    ObjectType,
     OptionalTypeNode,
-    ParenthesizedTypeNode,
-    PropertySignature, RestTypeNode,
+    ParenthesizedTypeNode, PropertyName,
+    PropertySignature,
+    RestTypeNode,
     StringLiteral,
-    StringLiteralType,
-    Symbol,
     SymbolFlags,
     SyntaxKind,
     TupleTypeNode,
-    Type,
     TypeAliasDeclaration,
     TypeChecker,
-    TypeFlags,
-    TypeParameter,
-    TypeParameterDeclaration,
-    TypeReference,
+    TypeLiteralNode,
+    TypeReferenceNode,
     UnionTypeNode
 } from "typescript";
 import {Type as TType, TypeTuple} from "../shared/types";
-import {displayFlags} from "./utils";
+import {displayFlags, simplifyType} from "./utils";
 
 type TypeDisplayContext = {
     typeChecker: TypeChecker,
@@ -36,12 +30,29 @@ type TypeDisplayContext = {
     references: {
         [key: string]: TType
     },
-}
+};
 
-const mapToTypeAndProceed = (node: Node, ctx: TypeDisplayContext) => {
-    const type = ctx.typeChecker.getTypeAtLocation(node);
-    return describeType(type, ctx);
-}
+const assert = (expr: boolean, message: string) => {
+    if(!expr) {
+        throw message;
+    }
+};
+
+const computePropertyName = (node: PropertyName) => {
+    switch (node.kind) {
+        case SyntaxKind.Identifier:
+        case SyntaxKind.NumericLiteral:
+        case SyntaxKind.PrivateIdentifier:
+        case SyntaxKind.StringLiteral:
+            return node.text;
+
+        case SyntaxKind.ComputedPropertyName:
+            throw "Computed property names not yet supported";
+
+        default:
+            throw `unknown property name kind ${SyntaxKind[(node as Node).kind]}`;
+    }
+};
 
 const NodeDescribeMap: {
     [K in SyntaxKind]?: TType | ((node: Node, ctx: TypeDisplayContext) => TType)
@@ -61,6 +72,7 @@ NodeDescribeMap[SyntaxKind.IntersectionType] = (node: UnionTypeNode, ctx) => {
     }
 };
 
+/* NullLiteral | BooleanLiteral | LiteralExpression | PrefixUnaryExpression */
 NodeDescribeMap[SyntaxKind.ParenthesizedType] = (node: ParenthesizedTypeNode, ctx) => describeNode(node.type, ctx);
 NodeDescribeMap[SyntaxKind.UndefinedKeyword] = { type: "undefined" };
 NodeDescribeMap[SyntaxKind.NullKeyword] = { type: "null" };
@@ -70,12 +82,173 @@ NodeDescribeMap[SyntaxKind.StringKeyword] = { type: "string" };
 NodeDescribeMap[SyntaxKind.StringLiteral] = (node: StringLiteral) => ({ type: "string", value: node.text });
 NodeDescribeMap[SyntaxKind.NumberKeyword] = { type: "number" };
 NodeDescribeMap[SyntaxKind.NumericLiteral] = (node: NumericLiteral) => ({ type: "number", value: parseFloat(node.text) });
+NodeDescribeMap[SyntaxKind.BigIntKeyword] = { type: "bigint" };
+NodeDescribeMap[SyntaxKind.BigIntLiteral] = (node: BigIntLiteral) => ({ type: "bigint", value: node.text });
 NodeDescribeMap[SyntaxKind.BooleanKeyword] = { type: "boolean" };
 NodeDescribeMap[SyntaxKind.TrueKeyword] = { type: "boolean", value: true };
 NodeDescribeMap[SyntaxKind.FalseKeyword] = { type: "boolean", value: false };
-NodeDescribeMap[SyntaxKind.LiteralType] = mapToTypeAndProceed;
-NodeDescribeMap[SyntaxKind.TypeReference] = mapToTypeAndProceed;
-NodeDescribeMap[SyntaxKind.TypeLiteral] = mapToTypeAndProceed;
+NodeDescribeMap[SyntaxKind.PrefixUnaryExpression] = () => {
+    throw "prefix unary expressions are not supported";
+};
+NodeDescribeMap[SyntaxKind.RegularExpressionLiteral] = () => {
+    throw "regular expressions are not supported";
+};
+NodeDescribeMap[SyntaxKind.LiteralType] = (node: LiteralTypeNode, ctx) => describeNode(node.literal, ctx);
+NodeDescribeMap[SyntaxKind.TypeReference] = (node: TypeReferenceNode, ctx) => {
+    const symbol = ctx.typeChecker.getSymbolAtLocation(node.typeName);
+
+    if(symbol === undefined) {
+        console.warn("Failed to lookup type reference for %s. Returning any type.", node.typeName.getText());
+        return { type: "any" };
+    }
+
+    const symbolType = symbol.flags & SymbolFlags.Type;
+    switch (symbolType) {
+        case 0:
+            throw "a type reference symbol should reference a type";
+
+        case SymbolFlags.EnumMember:
+            throw "unknown how to handle an enum member";
+
+        case SymbolFlags.ConstEnum:
+        case SymbolFlags.RegularEnum:
+            /* TODO: Implement support? */
+            throw "enums are not yet supported";
+
+        case SymbolFlags.Class:
+            throw "Classes can't be described.\nOnly primitive types, objects and interfaces can be described.";
+
+        case SymbolFlags.Interface: {
+            const typeReference: TType = {
+                type: "type-reference",
+                target: `I${symbol["id"]}_${symbol.name}`,
+                typeArguments: node.typeArguments?.map(type => describeNode(type, ctx))
+            };
+            assert(symbol.declarations.length > 0, "expected at least one interface declaration");
+            assert(typeof symbol.valueDeclaration === "undefined", "did not expect a valueDeclaration for a interface alias");
+
+            if(typeReference.target in ctx.references) {
+                return typeReference;
+            }
+
+            /* create a anonymous object which inherits all interfaces */
+            const typeInfo: TType = {
+                type: "object",
+                extends: [],
+            };
+
+            for(const declaration of symbol.declarations) {
+                const interfaceDeclaration = declaration as InterfaceDeclaration;
+                assert(declaration.kind === SyntaxKind.InterfaceDeclaration, `expected a interface declaration but received ${SyntaxKind[declaration.kind]}`);
+                assert(interfaceDeclaration.name.text === symbol.name, `miss matching symbol and interface declaration names (symbol: ${symbol.name}, interface: ${interfaceDeclaration.name.text})`);
+
+                const declarationSymbol = ctx.typeChecker.getSymbolAtLocation(interfaceDeclaration.name);
+                const typeReference: TType = {
+                    type: "type-reference",
+                    target: `I${declarationSymbol["id"]}_${declarationSymbol.name}`,
+                };
+
+                if(!(typeReference.target in ctx.references)) {
+                    ctx.references[typeReference.target] = describeNode(declaration, ctx);
+                }
+
+                typeInfo.extends.push(typeReference);
+            }
+
+            if(typeInfo.extends.length === 1) {
+                ctx.references[typeReference.target] = ctx.references[typeInfo.extends[0].target];
+            } else {
+                ctx.references[typeReference.target] = simplifyType(typeInfo);
+            }
+            return typeReference;
+        }
+
+        case SymbolFlags.TypeLiteral:
+            /* should be handled directly within the SyntaxKind.TypeLiteral */
+            throw "this seems to be a bug";
+
+        case SymbolFlags.TypeParameter:
+            return { type: "type-parameter-reference", target: symbol.getName() };
+
+        case SymbolFlags.TypeAlias:
+            assert(symbol.declarations.length === 1, "expected only one declaration for a type alias");
+            assert(typeof symbol.valueDeclaration === "undefined", "did not expect a valueDeclaration for a type alias");
+            assert(symbol.declarations[0].kind === SyntaxKind.TypeAliasDeclaration, `expected a type alias declaration but received ${SyntaxKind[symbol.declarations[0].kind]}`);
+
+            const typeReference: TType = {
+                type: "type-reference",
+                target: `T${symbol["id"]}_${symbol.name}`,
+                typeArguments: node.typeArguments?.map(type => describeNode(type, ctx))
+            };
+
+            if(typeReference.target in ctx.references) {
+                return typeReference;
+            }
+
+            ctx.references[typeReference.target] = describeNode(symbol.declarations[0], ctx);
+            return typeReference;
+
+        case SymbolFlags.Type:
+            /* btw, what is this? I only know TypeLiteral */
+            throw "unknown how to handle a type within a type reference";
+
+        default:
+            throw "unhandled symbol kind (type) with flags (" + displayFlags(symbol.flags, SymbolFlags) + ")";
+    }
+};
+
+/* This describes a "type X = ...".  */
+NodeDescribeMap[SyntaxKind.TypeAliasDeclaration] = (type: TypeAliasDeclaration, ctx) => {
+    const typeInfo = describeNode(type.type, ctx);
+    if(typeInfo.type === "object") {
+        /* TODO: We need a new system for generic parameter! */
+        typeInfo.typeArgumentNames = type.typeParameters?.map(parameter => parameter.name.text);
+    }
+    return typeInfo;
+};
+const describeTypeLiteralOrInterface = (node: TypeLiteralNode | InterfaceDeclaration, ctx: TypeDisplayContext) => {
+    const result: TType = {
+        type: "object",
+
+        members: {},
+        optionalMembers: {},
+
+        typeArgumentNames: [],
+        extends: []
+    };
+
+    for(const member of node.members) {
+        const name = computePropertyName(member.name);
+        const memberObject = member.questionToken ? result.optionalMembers : result.members;
+
+        switch (member.kind) {
+            case SyntaxKind.SetAccessor:
+            case SyntaxKind.GetAccessor:
+            case SyntaxKind.ConstructSignature:
+            case SyntaxKind.CallSignature:
+                /* Can only be valid on interfaces. */
+                throw `Interfaces which should be describable should only contain properties, index signatures or methods. ${SyntaxKind[member.kind]} can not be described.`;
+
+            case SyntaxKind.MethodSignature:
+                memberObject[name] = { type: "method" };
+                break;
+
+            case SyntaxKind.IndexSignature:
+                /* TODO: This could be implemented */
+                throw "index signature not yet supported";
+
+            case SyntaxKind.PropertySignature:
+                const propertySignature = member as PropertySignature;
+                memberObject[name] = describeNode(propertySignature.type, ctx);
+                break;
+        }
+    }
+
+    return simplifyType(result);
+};
+
+NodeDescribeMap[SyntaxKind.TypeLiteral] = describeTypeLiteralOrInterface;
+NodeDescribeMap[SyntaxKind.InterfaceDeclaration] = describeTypeLiteralOrInterface;
 NodeDescribeMap[SyntaxKind.ArrayType] = (node: ArrayTypeNode, ctx) => ({
     type: "array",
     elementType: describeNode(node.elementType, ctx)
@@ -162,183 +335,10 @@ NodeDescribeMap[SyntaxKind.RestType] = () => {
 export const describeNode = (node: Node, ctx: TypeDisplayContext): TType => {
     let result = NodeDescribeMap[node.kind];
     if(result === undefined) {
-        /* TODO: This as backup */
-        /* typeChecker.getTypeFromTypeNode(typeNode) */
         throw "unknown how to describe node " + SyntaxKind[node.kind];
     } else if(typeof result === "object") {
         return result;
     } else {
         return result(node, ctx);
     }
-}
-
-const TypeDescribeMap: {
-    [K in TypeFlags]?: TType | ((type: Type, ctx: TypeDisplayContext) => TType)
-} = {};
-TypeDescribeMap[TypeFlags.Any] = { type: "any" };
-TypeDescribeMap[TypeFlags.Null] = { type: "null" };
-TypeDescribeMap[TypeFlags.Unknown] = { type: "unknown" };
-TypeDescribeMap[TypeFlags.String] = { type: "string" };
-TypeDescribeMap[TypeFlags.StringLiteral] = (type: StringLiteralType) => ({ type: "string", value: type.value });
-TypeDescribeMap[TypeFlags.Number] = { type: "number" };
-TypeDescribeMap[TypeFlags.NumberLiteral] = (type: NumberLiteralType) => ({ type: "number", value: type.value });
-TypeDescribeMap[TypeFlags.Boolean] = { type: "boolean" };
-TypeDescribeMap[TypeFlags.BooleanLiteral] = (type: object) => ({ type: "boolean", value: type["intrinsicName"] === "true" });
-TypeDescribeMap[TypeFlags.TypeParameter] = (type: TypeParameter) => ({ type: "type-reference", target: type.symbol.name });
-TypeDescribeMap[TypeFlags.Object] = (type: ObjectType, ctx) => {
-    let typeArguments = type.aliasTypeArguments?.map(type => describeType(type, ctx));
-    let referenceResult: TType & { type: "object-reference" } = {
-        type: "object-reference",
-        target: "will be set later",
-        typeArguments
-    };
-
-    let referenceId;
-    if(type.objectFlags & ObjectFlags.Anonymous) {
-        /* Serialize this in line or as a reference */
-        referenceId = type.aliasSymbol ? "T" + type.symbol["id"] + "_" + type.aliasSymbol.name : undefined;
-    } else if(type.objectFlags & ObjectFlags.Class) {
-        throw "Classes can't be described.\nOnly primitive types, objects and interfaces can be described.";
-    } else if(type.objectFlags & ObjectFlags.Interface) {
-        /*
-         * All right, can be serialized and will be put in as a reference.
-         * If there are any template arguments a "Reference" will be used instead of aliasTypeArguments.
-         */
-        referenceId = "I" + type.symbol["id"] + "_" + type.symbol.name;
-    } else if(type.objectFlags & ObjectFlags.Reference) {
-        const typeReference = type as TypeReference;
-        let result = describeType(typeReference.target, ctx);
-        if(result.type !== "object-reference") {
-            /* a reference should be pointing to some kind of object which will return a reference. */
-            throw "this seems to be a bug in the compiler";
-        }
-
-        return {
-            type: "object-reference",
-            target: result.target,
-            typeArguments: typeReference.typeArguments?.map(type => describeType(type, ctx)) || []
-        };
-    } else {
-        throw "unknown object flags " + displayFlags(type.objectFlags, ObjectFlags);
-    }
-
-    let objectInfo: TType = {
-        type: "object",
-        extends: [],
-        members: {},
-        optionalMembers: {},
-        typeArgumentNames: []
-    };
-
-    referenceResult.target = referenceId;
-    if(typeof referenceResult.typeArguments === "undefined" || referenceResult.typeArguments.length === 0) {
-        delete referenceResult.typeArguments;
-    }
-
-    if(referenceId in ctx.references) {
-        return referenceResult;
-    } else if(referenceId) {
-        ctx.references[referenceId] = objectInfo;
-    }
-
-    {
-        let innerContext = { ...ctx };
-        innerContext.prefix = referenceId ? "" : innerContext.prefix + "  ";
-        innerContext.depth += 1;
-
-        /* Type parameter specification for type alias */
-        if(type.aliasSymbol) {
-            if(type.aliasSymbol.declarations.length !== 1) {
-                throw "alias symbol is expected to contain exactly one declaration";
-            }
-
-            const typeAlias = type.aliasSymbol.declarations[0] as TypeAliasDeclaration;
-            if(typeAlias.kind != SyntaxKind.TypeAliasDeclaration) {
-                throw "alias symbol declaration is supposed to be a type alias declaration but is a " + SyntaxKind[typeAlias.kind];
-            }
-
-            for(const typeArgument of typeAlias.typeParameters || []) {
-                objectInfo.typeArgumentNames.push(typeArgument.name.text);
-            }
-        }
-
-        for(let [ key, value ] of type.symbol.members! as Map<string, Symbol>) {
-            if(value.flags & SymbolFlags.Property) {
-                const propertySignature = value.valueDeclaration as PropertySignature;
-                if(propertySignature?.kind !== SyntaxKind.PropertySignature) {
-                    throw "expected a property signature node";
-                }
-
-                if(value.flags & SymbolFlags.Optional) {
-                    objectInfo.optionalMembers[key] = describeNode(propertySignature.type, innerContext);
-                } else {
-                    objectInfo.members[key] = describeNode(propertySignature.type, innerContext);
-                }
-            } else if(value.flags === SymbolFlags.TypeParameter) {
-                /* Type parameter specification for interfaces. */
-                if(value.declarations.length < 1) {
-                    /* TODO: Verify that all declarations are equal and don't only take the first one! */
-                    throw "type parameter expect at least only one declaration";
-                }
-                const declaration = value.declarations[0] as TypeParameterDeclaration;
-                if(declaration.kind !== SyntaxKind.TypeParameter) {
-                    throw "expected a type parameter";
-                }
-
-                objectInfo.typeArgumentNames.push(key);
-            } else if(value.flags === SymbolFlags.Method) {
-                objectInfo.members[key] = {
-                    type: "method"
-                };
-            } else {
-                throw "unknown how to handle object member of kind " + displayFlags(value.flags, SymbolFlags);
-            }
-        }
-
-        for(const baseType of type.getBaseTypes() || []) {
-            objectInfo.extends.push(describeType(baseType, ctx));
-        }
-    }
-
-    if(objectInfo.typeArgumentNames.length === 0) {
-        delete objectInfo.typeArgumentNames;
-    }
-
-    if(Object.keys(objectInfo.members).length === 0) {
-        delete objectInfo.members;
-    }
-
-    if(Object.keys(objectInfo.optionalMembers).length === 0) {
-        delete objectInfo.optionalMembers;
-    }
-
-    if(objectInfo.extends.length === 0) {
-        delete objectInfo.extends;
-    }
-
-    return referenceId ? referenceResult : objectInfo;
-}
-
-TypeDescribeMap[TypeFlags.Union] = () => {
-    throw "Unions should be handled via nodes";
-};
-
-TypeDescribeMap[TypeFlags.Intersection] = () => {
-    throw "Intersections should be handled via nodes";
-};
-
-export const describeType = (type: Type, ctx: TypeDisplayContext): TType => {
-    for(const key of Object.keys(TypeDescribeMap)) {
-        const mask = parseInt(key);
-        if(type.flags & mask) {
-            let result = TypeDescribeMap[key];
-            if(typeof result === "object") {
-                return result;
-            }
-
-            return result(type, ctx);
-        }
-    }
-
-    throw "unknown type " + displayFlags(type.flags, TypeFlags);
 }

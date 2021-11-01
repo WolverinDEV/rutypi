@@ -11,9 +11,9 @@ import {
     SourceFile,
     StringLiteral,
     SyntaxKind,
-    TransformationContext,
+    TransformationContext
 } from "typescript";
-import {Type, TypeRegistry} from "../shared/types";
+import {Type, TypeInvalid, TypeRegistry} from "../shared/types";
 import * as _ from "lodash";
 import {describeNode} from "./describer";
 import {Compilation, NormalModule, WebpackError} from "webpack";
@@ -62,6 +62,8 @@ nodeTransformer[SyntaxKind.Block] = (node: Block, ctx) => {
                 /* Function declarations can be at the end of a block and still be accessible. */
                 const functionDeclaration = entry as FunctionDeclaration;
                 ctx.declaredFunctions[functionDeclaration.name.text] = functionDeclaration;
+
+                /* TODO: When we're within the function, parameter names should be gathered as well */
                 break;
 
             /* TODO: var abc = ...; statements! These are equal to functions! (Note: let doesn't behave like this!) */
@@ -226,7 +228,7 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                 return node;
             }
 
-            let typeData;
+            let typeData: Type | TypeInvalid;
             try {
                 typeData = describeNode(node.typeArguments[0], {
                     typeChecker: ctx.program.getTypeChecker(),
@@ -235,6 +237,10 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                     depth: 0,
                     prefix: "",
                 });
+
+                if(typeData.type === "type-parameter-reference") {
+                    throw "type parameter references are not allowed";
+                }
             } catch (error) {
                 registerWebpackError(
                     createWebpackError(node, error, ctx),
@@ -242,8 +248,8 @@ nodeTransformer[SyntaxKind.CallExpression] = (node: ts.CallExpression, ctx) => {
                 );
 
                 typeData = {
-                    status: "invalid",
-                    message: error.toString()
+                    type: "invalid",
+                    reason: error.toString()
                 };
             }
 
@@ -306,7 +312,6 @@ const visit = <T extends Node>(node: T, context: VisitContext) => {
 const createTransformer = (refProgram: { current: ts.Program }, compilation: Compilation, registry: TypeRegistry) => (ctx: TransformationContext) => {
     return (node: SourceFile) => {
         console.error("Visit: %s", node.fileName);
-        debugger;
         const initialContext: VisitContext = {
             program: refProgram.current,
             compilation: compilation,

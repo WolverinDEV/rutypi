@@ -5,7 +5,9 @@ import { Type } from "../shared/types";
 
 export {
     ValidateOptions,
-    ValidateResult
+    ValidateResult,
+    ValidateError,
+    TypeValidateError
 } from "./types";
 
 export {
@@ -18,9 +20,10 @@ export /* native */ function typeInfo<T>(): Type {
     throw "this function call should have been overridden";
 }
 
-export /* native */ function validateType<T>(object: unknown, options?: { noThrow: true } & ValidateOptions): ValidateResult<T>;
-export /* native */ function validateType<T>(object: unknown, options?: ValidateOptions): T;
-export /* native */ function validateType<T>(_object: unknown, _options?): any {
+export /* native */ function validateType<T>(object: unknown, options: ValidateOptions & { noThrow: true }): ValidateResult<T>;
+export /* native */ function validateType<T>(object: unknown, options: ValidateOptions): T;
+export /* native */ function validateType<T>(object: unknown): T;
+export /* native */ function validateType<T>(_object: unknown, _options?): T | ValidateResult<T> {
     throw "this function call should have been overridden";
 }
 

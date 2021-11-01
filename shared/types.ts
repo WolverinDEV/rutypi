@@ -7,7 +7,7 @@ export type TypeRegistry = {
     }
 }
 
-export type Type = TypeObject | TypeReference | TypeIntersection | TypeUnion | {
+export type Type = TypeObject | TypeReference | TypeParameterReference | TypeIntersection | TypeUnion | {
     type: "any" | "unknown" | "undefined" | "null"
 } | TypeNumber | TypeBigInt | TypeString | TypeBoolean | TypeMethod | TypeArray | TypeTuple;
 
@@ -54,11 +54,16 @@ export type TypeObject = {
     optionalMembers?: {
         [key: string]: Type
     },
-    extends?: Type[]
+    extends?: TypeReference[]
+};
+
+export type TypeParameterReference = {
+    type: "type-parameter-reference",
+    target: string,
 };
 
 export type TypeReference = {
-    type: "object-reference" | "type-reference",
+    type: "type-reference",
     target: string,
     typeArguments?: Type[],
 };

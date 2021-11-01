@@ -50,7 +50,6 @@ test("describe primitive unknown", () => {
     });
 });
 
-/*
 test("describe primitive bigint", () => {
     expect(typeInfo<bigint>()).toStrictEqual<Type>({
         type: "bigint"
@@ -58,12 +57,11 @@ test("describe primitive bigint", () => {
 });
 
 test("describe primitive bigint literal", () => {
-    expect(typeInfo<123b>()).toStrictEqual<Type>({
+    expect(typeInfo<123n>()).toStrictEqual<Type>({
         type: "bigint",
-        value: 123b
+        value: "123n"
     });
 });
-*/
 
 test("describe primitive array", () => {
     expect(typeInfo<number[]>()).toStrictEqual<Type>({

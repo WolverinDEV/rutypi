@@ -9,7 +9,7 @@ type A = {
 
 test("describe type", () => {
     const typeReferenceA = typeInfo<A>();
-    if(typeReferenceA.type !== "object-reference") {
+    if(typeReferenceA.type !== "type-reference") {
         throw "expected a object reference";
     }
 
@@ -33,7 +33,7 @@ type B<K, V> = {
 
 test("describe type with template parameters", () => {
     const typeReferenceB = typeInfo<B<number, "hello world">>();
-    if(typeReferenceB.type !== "object-reference") {
+    if(typeReferenceB.type !== "type-reference") {
         throw "expected a object reference";
     }
     expect(typeReferenceB.typeArguments).toStrictEqual<Type[]>([
@@ -45,9 +45,20 @@ test("describe type with template parameters", () => {
     expect(typeB).toStrictEqual<Type>({
         type: "object",
         members: {
-            k: { type: "type-reference", target: "K" },
-            v: { type: "type-reference", target: "V" },
+            k: { type: "type-parameter-reference", target: "K" },
+            v: { type: "type-parameter-reference", target: "V" },
         },
         typeArgumentNames: [ "K", "V" ]
     });
 });
+
+/*
+ TODO:
+ type C<K> = { key: string } | { altKey: K };
+ */
+
+/*
+ TODO: Index signature
+ type T1 = { [key: string]: number };
+ type T2 = { [K in ??]: number };
+ */

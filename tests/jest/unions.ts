@@ -52,3 +52,54 @@ test("describe simple union with literals (without reduction)", () => {
         ]
     });
 });
+
+/*
+type A = {
+    failure: true
+} | {
+    failure: false
+} | undefined;
+*/
+
+test("describe union with type reference", () => {
+    /*
+    type A = {
+        success: true
+    } | {
+        success: false
+    } | undefined;
+
+    const typeReferenceA = typeInfo<A>();
+    if(typeReferenceA.type !== "object-reference") {
+        throw "expected a object reference";
+    }
+
+    const typeA = lookupReference(typeReferenceA);
+    expect(typeA).toStrictEqual<Type>({
+        type: "union",
+        types: [
+            {
+                type: "object",
+                members: {
+                    success: {
+                        type: "boolean",
+                        value: true
+                    }
+                }
+            },
+            {
+                type: "object",
+                members: {
+                    success: {
+                        type: "boolean",
+                        value: false
+                    }
+                }
+            },
+            {
+                type: "undefined"
+            }
+        ],
+    });
+    */
+})

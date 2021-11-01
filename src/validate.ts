@@ -193,7 +193,7 @@ typeValidators["union"] = (currentObject: any, type: TypeUnion, ctx: TypeValidat
         return text.substr(0, index) + replacement + text.substr(index + needle.length);
     }
 
-    return [`expected a ${replaceLast(type.types.map(type => type.type === "object-reference" ? type.target : type.type).join(", "), ", ", ", or ")} but nothing matches`];
+    return [`expected a ${replaceLast(type.types.map(type => type.type === "type-reference" ? type.target : type.type).join(", "), ", ", ", or ")} but nothing matches`];
 };
 typeValidators["intersection"] = (currentObject: any, type: TypeIntersection, ctx: TypeValidateContext) => {
     type.types.forEach(type => validateObject(type, currentObject, ctx));

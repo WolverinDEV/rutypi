@@ -35,6 +35,10 @@ export class RutypiWebpackPlugin {
         /* Hook each ts-compiler with our custom transformer. */
         {
             const tsloaderInstances = projectModule.require("ts-loader/dist/instances");
+            if(typeof tsloaderInstances.initializeInstance !== "function") {
+                throw new Error("ts-loader missing function initializeInstance in instances. Please ensure that you have the latest ts-loader version!");
+            }
+
             const original = tsloaderInstances.initializeInstance;
             Object.assign(tsloaderInstances, {
                 initializeInstance: (loader: webpack.LoaderContext<LoaderOptions>, instance: TSInstance) => {
@@ -65,9 +69,13 @@ export class RutypiWebpackPlugin {
          * Since we need the program to access the TypeChecker we need to keep a reference to the currently used program.
          */
         {
-            const tsloaderInstances = projectModule.require("ts-loader/dist/utils");
-            const original = tsloaderInstances.ensureProgram;
-            Object.assign(tsloaderInstances, {
+            const tsloaderUtils = projectModule.require("ts-loader/dist/utils");
+            if(typeof tsloaderUtils.ensureProgram !== "function") {
+                throw new Error("ts-loader missing function ensureProgram in utils. Please ensure that you have the latest ts-loader version!");
+            }
+
+            const original = tsloaderUtils.ensureProgram;
+            Object.assign(tsloaderUtils, {
                 ensureProgram: (instance: TSInstance) => {
                     const program = original(instance);
                     this.refCurrentProgram.current = program;

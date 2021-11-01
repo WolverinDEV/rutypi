@@ -7,13 +7,14 @@ interface A {
 interface B {
     key: string
 }
+
 interface B {
     value: number
 }
 
 test("describe interface", () => {
     const typeReferenceA = typeInfo<A>();
-    if(typeReferenceA.type !== "object-reference") {
+    if(typeReferenceA.type !== "type-reference") {
         throw "expected a object reference";
     }
 
@@ -28,18 +29,18 @@ test("describe interface", () => {
 
 test("describe interface with multiple declarations", () => {
     const typeReferenceA = typeInfo<B>();
-    if(typeReferenceA.type !== "object-reference") {
+    if(typeReferenceA.type !== "type-reference") {
         throw "expected a object reference";
     }
 
     const typeA = lookupReference(typeReferenceA);
     expect(typeA).toStrictEqual<Type>({
         type: "object",
-        members: {
-            key: { type: "string" },
-            value: { type: "number" }
-        }
+        extends: typeA["extends"]
     });
+
+    console.info("typeA: %o", typeA);
+    /* FIXME: check extends be references and look them up */
 });
 
 /*
